@@ -1,0 +1,176 @@
+@(
+	title: String,
+	scripts: List[String] = List(),
+	styles: List[String] = List(),
+	userOption: Option[String] = None
+)(
+	content: Html
+)(
+	implicit request: RequestHeader
+)
+@import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
+
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>@if(!title.isEmpty){ @title | } Cashy</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<link rel="stylesheet" type="text/css" href="@routes.Assets.at("css/main.css")" />
+		<link rel="stylesheet" type="text/css" href="@routes.Assets.at("jquery-ui-1.10.3/core/themes/base/minified/jquery-ui.min.css")" />
+		<link rel="stylesheet" type="text/css" href="@routes.Assets.at("bootstrap-2.3.2/css/bootstrap.min.css")" />
+		<style>
+			body {
+				padding-top: 40px; /* 40px to make the container go all the way to the bottom of the topbar */
+			}
+			.flash-container div {
+				margin-top: 10px;
+			}
+			#legend {
+				position: absolute;
+				z-index:100;
+				background-color: #ffffff;
+				opacity:1.0;
+				-webkit-box-shadow: 0px 0px 17px rgba(50, 50, 50, 1);
+				-moz-box-shadow:    0px 0px 17px rgba(50, 50, 50, 1);
+				box-shadow:         0px 0px 17px rgba(50, 50, 50, 1);
+				-webkit-border-radius: 5px;
+				-moz-border-radius: 5px;
+				border-radius: 5px;
+			}
+			#legend > span.highlight {
+				border: 1px solid #000000;
+			}
+			#legend > span {
+				padding-left: 5px;
+				padding-right: 5px;
+				display: inline-block;
+				overflow-x:auto;
+			}
+		</style>
+		<link rel="stylesheet" type="text/css" href="@routes.Assets.at("bootstrap-2.3.2/css/bootstrap-responsive.min.css")" />
+
+		@for(style <- styles) {
+			<link rel="stylesheet" type="text/css" href="@routes.Assets.at(style)" />
+		}
+
+		<script type="text/javascript" src="@routes.Assets.at("js/jquery-2.0.3.min.js")"></script>
+
+		<!--[if lt IE 9]>
+		<script type="text/javascript">
+			document.createElement('header');
+			document.createElement('nav');
+			document.createElement('section');
+			document.createElement('figure');
+			document.createElement('article');
+			document.createElement('footer');
+		</script>
+		<![endif]-->
+		
+	</head>
+	<body>
+		<div id="legend"></div>
+		<div class="navbar navbar-inverse navbar-fixed-top">
+			<div class="navbar-inner">
+				<div class="container">
+					<a class="brand" href="@cashyRoutes.HomeController.index()">
+						<img src="@routes.Assets.at("")" alt="Cashy" title="Cashy">
+					</a>
+					<div class="nav-collapse collapse">
+						<ul class="nav">
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown">Dashboards <b class="caret"></b></a>
+								<ul class="dropdown-menu">
+									<li class="divider"></li>
+
+								</ul>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown">Alerts <b class="caret"></b></a>
+								<ul class="dropdown-menu">
+									<li class="divider"></li>
+									<li class="divider"></li>
+								</ul>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown">Dynamic Alerts <b class="caret"></b></a>
+								<ul class="dropdown-menu">
+									<li class="divider"></li>
+								</ul>
+							</li>
+							<li class="dropdown">
+								<a href="#" class="dropdown-toggle" data-toggle="dropdown">Hosts <b class="caret"></b></a>
+								<ul class="dropdown-menu">
+								</ul>
+							</li>
+						</ul>
+						<ul class="nav pull-right">
+							@if(userOption.isDefined) {
+								<li class="dropdown">
+									<a href="#" class="dropdown-toggle" data-toggle="dropdown">@userOption.get @if(userOption.get){(Admin)} <b class="caret"></b></a>
+									<ul class="dropdown-menu">
+										<li><span style="padding:0.7em 1.5em;color:grey">@userOption.get</span></li>
+										<li class="divider"></li>
+										<li class="divider"></li>
+										<li class="divider"></li>
+										<li class="divider"></li>
+										<li class="divider"></li>
+									</ul>
+								</li>
+							} else {
+								<li class="dropdown">
+									<a href="#" class="dropdown-toggle" data-toggle="dropdown">Login <b class="caret"></b></a>
+									<ul class="dropdown-menu">
+									</ul>
+								</li>
+							}
+						</ul>
+					</div>
+					<div class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+						<span class="icon-bar"></span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="container">
+			<div class="flash-container">
+				@if(!request.flash.isEmpty) {
+					<div id="flash-page" class="alert alert-@request.flash("level")">
+						<button type="button" class="close" data-dismiss="alert">&times;</button>
+						<strong>@request.flash("title")</strong>
+						@request.flash("message")
+					</div>
+					<script type="text/javascript">
+						$(document).ready(function() {
+							setTimeout(function() {
+								var element = $('#flash-page');
+								element.fadeTo(2000, 0, function() {
+									element.slideUp(400, function() {
+										element.remove();
+									});
+								});
+							}, 3000);
+						});
+					</script>
+				}
+			</div>
+
+			@content
+
+			<hr />
+			<footer>
+				<p class="muted"><a href="https://github.com/lucidchart/cashy">Cashy</a> version  &copy; Apache License Version 2.0</p>
+			</footer>
+		</div>
+
+		<script type="text/javascript" src="@routes.Assets.at("jquery-ui-1.10.3/core/ui/minified/jquery-ui.min.js")"></script>
+		<script type="text/javascript" src="@routes.Assets.at("bootstrap-2.3.2/js/bootstrap.min.js")"></script>
+		@for(script <- scripts) {
+			<script type="text/javascript" src="@routes.Assets.at(script)"></script>
+		}
+	</body>
+</html>
