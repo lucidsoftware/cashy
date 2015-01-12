@@ -4,6 +4,9 @@
 
 # Home page
 GET     /                                    com.lucidchart.open.cashy.controllers.HomeController.index
+GET     /login                               com.lucidchart.open.cashy.controllers.AuthController.login
+GET     /logout                              com.lucidchart.open.cashy.controllers.AuthController.logout
+GET     /oauth2callback                      com.lucidchart.open.cashy.controllers.AuthController.oauth2Callback(code: Option[String], state: Option[String])
 
 
 # Map static resources from the /public folder to the /assets URL path

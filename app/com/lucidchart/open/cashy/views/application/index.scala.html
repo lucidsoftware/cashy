@@ -1,12 +1,17 @@
+@import com.lucidchart.open.cashy.models.User
+@import com.lucidchart.open.cashy.views
 @(
 )(
-	implicit
-	request: play.api.mvc.Request[_]
+  implicit
+  request: play.api.mvc.Request[_],
+  userOption: Option[User]
 )
 
-@import com.lucidchart.open.cashy.views
-
-@com.lucidchart.open.cashy.views.html.layouts.main("") {
-	<div>Hello World</div>
+@com.lucidchart.open.cashy.views.html.layouts.main(userOption=userOption) {
+  <div class="well">
+    <a href="https://github.com/lucidsoftware/cashy">Cashy</a>
+    was originally created by
+    <a href="https://www.lucidchart.com/" target="_blank">Lucid Software Inc.</a>
+    in reponse to a lack of usable Amazon S3 and CloudFront management tool.
+  </div>
 }
-

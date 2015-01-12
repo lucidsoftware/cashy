@@ -13,8 +13,8 @@ import play.api.Play.current
 
 object Global extends GlobalSettings {
 
-	override def onStart(application: Application) {
-		super.onStart(application)
-	}
+  override def onStart(application: Application) {
+    super.onStart(application)
+  }
 
 }
