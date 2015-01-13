@@ -8,6 +8,9 @@ GET     /login                               com.lucidchart.open.cashy.controlle
 GET     /logout                              com.lucidchart.open.cashy.controllers.AuthController.logout
 GET     /oauth2callback                      com.lucidchart.open.cashy.controllers.AuthController.oauth2Callback(code: Option[String], state: Option[String])
 
+# Uploading
+GET     /upload                              com.lucidchart.open.cashy.controllers.UploadController.index
+POST    /uploadToS3                          com.lucidchart.open.cashy.controllers.UploadController.uploadToS3
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /favicon.ico                         controllers.Assets.at(path="/public", file = "img/favicon.png")

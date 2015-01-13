@@ -4,7 +4,7 @@
 # --- !Ups
 
 CREATE TABLE `users` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` bigint NOT NULL AUTO_INCREMENT,
   `google_id` varchar(25) NOT NULL COMMENT 'Google sometimes refers to this as sub',
   `email` varchar(80) NOT NULL,
   PRIMARY KEY (`id`)

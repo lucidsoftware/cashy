@@ -1,0 +1,36 @@
+@import com.lucidchart.open.cashy.models.User
+@import com.lucidchart.open.cashy.views
+@import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
+@import helper._
+
+@(
+  formCreate: Form[_],
+  buckets: List[String],
+  uploadError: Option[String] = None
+)(
+  implicit
+  request: play.api.mvc.Request[_],
+  userOption: Option[User]
+)
+
+@com.lucidchart.open.cashy.views.html.layouts.main(userOption=userOption) {
+  <div class="row">
+    <h2>Upload Assets</h2>
+    <div class="well">
+      @helper.form(action=cashyRoutes.UploadController.uploadToS3(), ('enctype -> "multipart/form-data")) {
+        <fieldset>
+          @helper.select(formCreate("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, '_label -> "Bucket", '_showConstraints -> false)
+          @helper.inputText(formCreate("assetName"), '_label -> "Asset Name")
+          @helper.inputFile(formCreate("assetFile"), '_label -> "Asset File", 'size -> 10)
+          <button class="btn btn-primary">Upload</button>
+        </fieldset>
+      }
+      @if(uploadError.isDefined) {
+        <div class="error">
+        @uploadError.get
+        </div>
+      }
+
+    </div>
+  </div>
+}

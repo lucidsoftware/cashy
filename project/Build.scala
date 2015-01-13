@@ -18,7 +18,8 @@ object ApplicationBuild extends Build {
     "com.google.api-client" % "google-api-client" % "1.18.0-rc",
     "com.lucidchart" %% "relate" % "1.7.1",
     "mysql" % "mysql-connector-java" % "5.1.23",
-    "org.apache.httpcomponents" % "httpclient" % "4.3.6"
+    "org.apache.httpcomponents" % "httpclient" % "4.3.6",
+    "com.amazonaws" % "aws-java-sdk" % "1.9.13"
   )
 
   val main = Project(appName, file(".")).enablePlugins(PlayScala).settings(
