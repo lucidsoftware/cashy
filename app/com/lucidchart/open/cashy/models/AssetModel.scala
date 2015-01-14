@@ -9,7 +9,7 @@ case class Asset(
   id: Long,
   bucket: String,
   key: String,
-  user_id: Long,
+  userId: Long,
   created: Date
 )
 
@@ -32,9 +32,6 @@ class AssetModel {
       val assetId = sql"""INSERT INTO `assets`
         (`bucket`, `key`, `user_id`, `created`)
         VALUES ($bucket, $key, $userId, $now)""".executeInsertLong()
-      findById(assetId).getOrElse {
-        throw new Exception("Mysql insert failed")
-      }
     }
   }
 

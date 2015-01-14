@@ -5,7 +5,7 @@
 
 @(
   formCreate: Form[_],
-  buckets: List[String],
+  buckets: Set[String],
   uploadError: Option[String] = None
 )(
   implicit
@@ -24,6 +24,13 @@
           @helper.inputFile(formCreate("assetFile"), '_label -> "Asset File", 'size -> 10)
           <button class="btn btn-primary">Upload</button>
         </fieldset>
+      }
+      @if(formCreate.hasErrors) {
+        @for(error <- formCreate.errors if error.key.isEmpty) {
+          <div class="error">
+            @error.message
+          </div>
+        }
       }
       @if(uploadError.isDefined) {
         <div class="error">

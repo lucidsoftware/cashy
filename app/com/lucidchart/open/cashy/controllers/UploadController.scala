@@ -24,10 +24,9 @@ class UploadController extends AppController {
 
   val logger = Logger(this.getClass)
 
-  val bucketCloudfrontMap = configuration.getConfig("amazon.s3.bucketCloudfrontMap").get.keys.map(k => (k -> configuration.getString(s"amazon.s3.bucketCloudfrontMap.$k").get)).toMap
-  val buckets: List[String] = bucketCloudfrontMap.keys.toList
+  private val bucketCloudfrontMap = configuration.getConfig("amazon.s3.bucketCloudfrontMap").get.subKeys.map(k => (k -> configuration.getString(s"amazon.s3.bucketCloudfrontMap.$k.cloudfront").get)).toMap
+  val buckets: Set[String] = bucketCloudfrontMap.keys.toSet
   val uploadExtensions: List[String] = configuration.getStringList("upload.extensions").get.asScala.toList
-  val rootFolder: String = configuration.getString("upload.rootFolder").get
   val minNestedDirectories: Int = configuration.getInt("upload.minNestedDirectories").get
   val minGzipSavings: Double = configuration.getDouble("upload.minGzipSavings").get
 
@@ -39,11 +38,11 @@ class UploadController extends AppController {
     mapping(
       "bucket" -> text.verifying("Invalid bucket", x => buckets.contains(x)),
       "assetName" -> text.verifying("Enter a name", x => !x.isEmpty)
-              .verifying("Must start with "+rootFolder+"/", x => x.startsWith(rootFolder +"/"))
               .verifying("Must be organized in at least " + minNestedDirectories + " directories", x => x.split("/").length >= minNestedDirectories + 1)
-              .verifying("Must end in a valid extension (" + uploadExtensions.map("." + _).mkString(", ") + ")", x => uploadExtensions.exists(e => x.endsWith(e)))
-              .verifying("Name taken", x => !S3Client.existsInS3("dev-cashy", x))
-    )(UploadFormSubmission.apply)(UploadFormSubmission.unapply)
+              .verifying("Must end in a valid extension (" + uploadExtensions.map("." + _).mkString(", ") + ")", x => checkExtension(x))
+    )(UploadFormSubmission.apply)(UploadFormSubmission.unapply) verifying("Name not available", form => form match {
+      case UploadFormSubmission(bucket, assetName) => !S3Client.existsInS3(bucket, assetName)
+    })
   )
 
   /**
@@ -66,6 +65,7 @@ class UploadController extends AppController {
         }
         case Some(file) => formWithData
       }
+
 
       formWithFileValidation.fold(
         formWithErrors => {
@@ -109,7 +109,14 @@ class UploadController extends AppController {
             } else {
               // If gzip upload happened but this one failed, have to delete the gzip one
               if (gzipUploaded) {
-                S3Client.removeFromS3(bucket, assetName, gzipped=true)
+                try {
+                  S3Client.removeFromS3(bucket, assetName, gzipped=true)
+                }
+                catch {
+                  case e: Exception => {
+                    throw new UploadFailedException("Uploading non-gzip version for file failed and could not delete the gzip version.  Please contact your S3 administrator to correct the issue: " + (bucket, assetName))
+                  }
+                }
               }
               throw new UploadFailedException("Uploading non-gzip version for file failed: " + (bucket, assetName))
             }
@@ -124,6 +131,11 @@ class UploadController extends AppController {
         }
       )
     }
+  }
+
+  // Returns true if the extension exists (case insensitive)
+  private def checkExtension(key: String): Boolean = {
+    uploadExtensions.exists(e => key.toLowerCase().endsWith(e.toLowerCase()))
   }
 
 }

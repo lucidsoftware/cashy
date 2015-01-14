@@ -13,7 +13,7 @@ object AuditType extends Enumeration {
 
 case class AuditEntry(
   id: Long,
-  user_id: Long,
+  userId: Long,
   data: String,
   auditType: AuditType.Value,
   created: Date
@@ -52,19 +52,16 @@ class AuditModel {
     }
   }
 
-  private def createAuditEntry(userId: Long, data: String, assetType: AuditType.Value) = {
+  private def createAuditEntry(userId: Long, data: String, assetType: AuditType.Value) {
     val now = new Date()
     DB.withConnection { implicit connection =>
       val auditId = sql"""INSERT INTO `audits`
         (`user_id`, `data`, `type`, `created`)
         VALUES ($userId, $data, ${assetType.id}, $now)""".executeInsertLong()
-      findById(auditId).getOrElse {
-        throw new Exception("Mysql insert failed")
-      }
     }
   }
 
-  def createUploadAudit(userId: Long, bucket: String, assetKey: String, cloudfrontUrl: String, gzipped: Boolean): AuditEntry = {
+  def createUploadAudit(userId: Long, bucket: String, assetKey: String, cloudfrontUrl: String, gzipped: Boolean) {
     val uploadData = Json.stringify(Json.toJson(UploadAuditData(bucket, assetKey, cloudfrontUrl, gzipped)))
     createAuditEntry(userId, uploadData, AuditType.upload)
   }

@@ -29,7 +29,11 @@ class S3Client {
     }
     catch {
       case e: AmazonS3Exception => {
-        e.getStatusCode() != 404
+        if (e.getStatusCode() == 404) {
+          false
+        } else {
+          throw e
+        }
       }
     }
   }
@@ -53,7 +57,7 @@ class S3Client {
     } catch {
       case e: AmazonClientException => {
         Logger.error("Error while uploading to S3 " + objectName, e)
-        false
+        throw e
       }
     }
   }
@@ -65,6 +69,7 @@ class S3Client {
     } catch {
       case e: Exception => {
         Logger.error(s"Error when deleting asset $bucketName/$objectName")
+        throw e
       }
     }
   }
