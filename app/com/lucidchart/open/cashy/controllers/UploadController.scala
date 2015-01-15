@@ -38,6 +38,7 @@ class UploadController extends AppController {
     mapping(
       "bucket" -> text.verifying("Invalid bucket", x => buckets.contains(x)),
       "assetName" -> text.verifying("Enter a name", x => !x.isEmpty)
+              .verifying("Must not start with /", x => !x.startsWith("/"))
               .verifying("Must be organized in at least " + minNestedDirectories + " directories", x => x.split("/").length >= minNestedDirectories + 1)
               .verifying("Must end in a valid extension (" + uploadExtensions.map("." + _).mkString(", ") + ")", x => checkExtension(x))
     )(UploadFormSubmission.apply)(UploadFormSubmission.unapply) verifying("Name not available", form => form match {
