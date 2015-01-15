@@ -23,7 +23,7 @@ object AppFlash {
   /**
    * Create a new error flash message
    */
-  def error(message: String, title: String): Flash = flash("error", message, title)
+  def error(message: String, title: String): Flash = flash("danger", message, title)
 
   /**
    * Create a new warning flash message with no title
