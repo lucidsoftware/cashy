@@ -26,6 +26,16 @@ class AssetModel {
     }
   }
 
+  def findByKey(bucketName: String, key: String): Option[Asset] = {
+    DB.withConnection { implicit connection =>
+      sql"""SELECT `id`, `bucket`, `key`, `user_id`, `created`
+        FROM `assets`
+        WHERE `key` = $key AND `bucket` = $bucketName""".asSingleOption { row =>
+          Asset(row.long("id"), row.string("bucket"), row.string("key"), row.long("user_id"), row.date("created"))
+      }
+    }
+  }
+
   def createAsset(bucket: String, key: String, userId: Long) {
     val now = new Date()
     DB.withConnection { implicit connection =>
