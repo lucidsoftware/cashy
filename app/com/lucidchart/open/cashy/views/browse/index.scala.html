@@ -1,0 +1,168 @@
+@import com.lucidchart.open.cashy.models.{User, BrowseItem, BrowseItemType}
+@import com.lucidchart.open.cashy.views
+@import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
+@import helper._
+
+@(
+  bucketName: String,
+  path: String,
+  crumbs: Map[String,String],
+  items: List[BrowseItem]
+)(
+  implicit
+  request: play.api.mvc.Request[_],
+  buckets: Set[String],
+  userOption: Option[User]
+)
+
+@com.lucidchart.open.cashy.views.html.layouts.main(userOption=userOption) {
+  <div class="row">
+    <h2>@bucketName</h2>
+    <ul class="breadcrumb">
+      <li><a href="@cashyRoutes.BrowseController.index(bucketName, "")">@bucketName</a></li>
+      @for((crumb, path) <- crumbs) {
+        <li><span class="divider">/</span><a href="@cashyRoutes.BrowseController.index(bucketName, path)">@crumb</a></li>
+      }
+    </ul>
+    <div class="container-fluid">
+      <div class="row-fluid">
+        <a href="@cashyRoutes.UploadController.index(Some(bucketName), Some(path))"><button class="btn btn-primary">Upload Here</button></a>
+        <button type="button" data-toggle="modal" data-target="#newFolderModal" class="btn btn-primary">Create Folder</button>
+
+        <div id="newFolderModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+            <h3 id="myModalLabel">Create folder in @path</h3>
+          </div>
+          <div class="modal-body">
+            <div>Please only create a folder if you intend to upload to it</div><br />
+            <input id="newFolderName" type="text" placeholder="Folder Name" />
+            <div id="newFolderError" class="error"></div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+            <button id="createFolderSubmit" class="btn btn-primary">Create Folder</button>
+          </div>
+        </div>
+      </div>
+      <div class="row-fluid asset-list">
+        <div class="span3">
+          @for(item <- items) {
+            <div class="asset-row">
+              @item.itemType match {
+                case BrowseItemType.folder => {<span class="icon-folder-open"></span><a href="@item.link">@item.name</a>}
+                case BrowseItemType.asset => {<span class="icon-file"></span><a class="asset" href="#" data-key="@item.key">@item.name</a>}
+              }
+            </div>
+          }
+        </div>
+        <div class="span9 hide" id="itemDetails">
+          <div class="row">
+            <h3 id="itemName"></h3>
+            <div class="row">
+              <div class="item-detail-label">S3 Key</div><div class="item-detail-value" id="itemKey"></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">S3 Url</div><div class="item-detail-value"><a id="itemS3Url" href="" target="_blank"></a></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">Cloudfront Url</div><div class="item-detail-value"><a id="itemCloudrontUrl" href="" target="_blank"></a></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">Created At</div><div class="item-detail-value" id="itemCreatedAt"></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">Created By</div><div class="item-detail-value" id="itemCreatedBy"></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">ETag</div><div class="item-detail-value" id="itemETag"></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">Content-Type</div><div class="item-detail-value" id="itemContentType"></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">Content-Length</div><div class="item-detail-value" id="itemContentLength"></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">Cache-Control</div><div class="item-detail-value" id="itemCacheControl"></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">Gzipped</div><div class="item-detail-value" id="itemGzipped"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $('a.asset').click(function(e){
+      e.preventDefault();
+      var key = $(this).attr('data-key');
+      
+      $.ajax({
+        'type': 'GET',
+        'url': '/browse/@bucketName/' + key + '/info',
+        success: function(data) {
+          $('#itemName').text(data.name);
+          $('#itemKey').text(data.key);
+          $('#itemS3Url').text(data.s3Url).attr('href', data.s3Url);
+          $('#itemCloudrontUrl').text(data.cloudfrontUrl).attr('href', data.cloudfrontUrl);
+          $('#itemCreatedAt').text(data.creationDate);
+          $('#itemCreatedBy').text(data.creator);
+          $('#itemETag').text(data.eTag);
+          $('#itemContentType').text(data.contentType);
+          $('#itemContentLength').text(data.size);
+          $('#itemCacheControl').text(data.cacheControl);
+          $('#itemGzipped').text(data.gzipped);
+
+          $('#itemDetails').show();
+        },
+        complete: function(xhr) {
+          console.log(xhr)
+        }
+      })
+
+    });
+
+    $('#createFolderSubmit').click(function(e) {
+      e.preventDefault();
+      var folderName = $('#newFolderName').val();
+
+      $.ajax({
+        'type': 'POST',
+        'url': '/browse/@bucketName/@path' + folderName + '/create',
+        success: function(data) {
+          if(data.error) {
+            $('#newFolderError').text(data.error);
+          } else {
+            location.reload();
+          }
+        },
+        complete: function(xhr) {
+          console.log(xhr);
+        }
+      })
+    });
+
+  </script>
+
+  <style>
+    .item-detail-label {
+      width: 15%;
+      float: left;
+    }
+    .item-detail-value {
+      width: 85%;
+      float: left;
+    }
+    .asset-list {
+      margin-top: 20px;
+    }
+    .asset-list .asset-row span {
+      margin-right: 5px;
+      width: 20px;
+    }
+  </style>
+
+}(request, buckets)

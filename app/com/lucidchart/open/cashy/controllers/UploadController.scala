@@ -23,9 +23,7 @@ object UploadController extends UploadController
 class UploadController extends AppController {
 
   val logger = Logger(this.getClass)
-
-  private val bucketCloudfrontMap = configuration.getConfig("amazon.s3.bucketCloudfrontMap").get.subKeys.map(k => (k -> configuration.getString(s"amazon.s3.bucketCloudfrontMap.$k.cloudfront").get)).toMap
-  val buckets: Set[String] = bucketCloudfrontMap.keys.toSet
+  
   val uploadExtensions: List[String] = configuration.getStringList("upload.extensions").get.asScala.toList
   val minNestedDirectories: Int = configuration.getInt("upload.minNestedDirectories").get
   val minGzipSavings: Double = configuration.getDouble("upload.minGzipSavings").get
@@ -49,9 +47,12 @@ class UploadController extends AppController {
   /**
    * Upload form, authentication required
    */
-  def index = AuthAction.authenticatedUser { implicit user =>
+  def index(bucket: Option[String] = None, path: Option[String] = None) = AuthAction.authenticatedUser { implicit user =>
     Action {  implicit request =>
-      Ok(views.html.upload.index(uploadForm, buckets)(request,userOption=Some(user)))
+
+      val filledForm = uploadForm.fill(UploadFormSubmission(bucket.getOrElse(null), path.getOrElse(null)))
+
+      Ok(views.html.upload.index(filledForm)(request,buckets,userOption=Some(user)))
     }
   }
 
@@ -70,7 +71,7 @@ class UploadController extends AppController {
 
       formWithFileValidation.fold(
         formWithErrors => {
-          Ok(views.html.upload.index(formWithErrors, buckets)(request,userOption=Some(user)))
+          Ok(views.html.upload.index(formWithErrors)(request,buckets,userOption=Some(user)))
         },
         data => {
 
@@ -106,7 +107,7 @@ class UploadController extends AppController {
 
               AuditModel.createUploadAudit(user.id, bucket, assetName, assetLink, gzipUploaded)
 
-              Ok(views.html.upload.complete(assetLink)(request,userOption=Some(user)))
+              Ok(views.html.upload.complete(assetLink)(request,buckets,userOption=Some(user)))
             } else {
               // If gzip upload happened but this one failed, have to delete the gzip one
               if (gzipUploaded) {
@@ -125,7 +126,7 @@ class UploadController extends AppController {
           catch {
             case e: Exception => {
               logger.error("Exception caught when processing upload request", e)
-              Ok(views.html.upload.index(uploadForm.fill(data), buckets, Some(e.getMessage))(request,userOption=Some(user)))
+              Ok(views.html.upload.index(uploadForm.fill(data), Some(e.getMessage))(request,buckets,userOption=Some(user)))
             }
           }
 

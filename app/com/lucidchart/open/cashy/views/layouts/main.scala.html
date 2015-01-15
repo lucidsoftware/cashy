@@ -8,7 +8,8 @@
 )(
   content: Html
 )(
-  implicit request: RequestHeader
+  implicit request: RequestHeader,
+  buckets: Set[String]
 )
 
 <!DOCTYPE HTML>
@@ -80,7 +81,14 @@
           </a>
           <div class="nav-collapse collapse">
             <ul class="nav">
-              <li><a href="#">Browse</a></li>
+              <li class="dropdown">
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Browse <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                  @for(bucket <- buckets) {
+                    <li><a href="@cashyRoutes.BrowseController.index(bucket, "")">@bucket</a></li>
+                  }
+                </ul>
+              </li>
               <li><a href="@cashyRoutes.UploadController.index()">Upload</a></li>
             </ul>
             <ul class="nav pull-right">
