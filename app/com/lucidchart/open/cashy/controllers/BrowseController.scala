@@ -55,6 +55,10 @@ class BrowseController extends AppController {
     }
   }
 
+  /**
+   * Returns detailed information on an asset, combining information stored by cashy and amazon s3
+   * Result is in json format
+   */
   def assetInfo(bucket: String, key: String) = AuthAction.authenticatedUser { implicit user =>
     Action { implicit request =>
 
@@ -96,6 +100,10 @@ class BrowseController extends AppController {
     }
   }
 
+  /**
+   * Creates a folder in the bucket.  Returns json with an error if the bucket already exists or could
+   * not be created
+   */
   def createFolder(bucket: String, key: String) = AuthAction.authenticatedUser { implicit user =>
     Action { implicit request =>
       try {
@@ -120,6 +128,10 @@ class BrowseController extends AppController {
     }
   }
 
+  /**
+   * Splits a path e.g. root/folder1/ into a map of folder name and complete paths
+   * e.g. root -> root/, folder -> root/folder1/
+   */
   private def breadcrumbs(path: String): Map[String, String] = {
     val crumbs = path.split("/")
     crumbs.zipWithIndex.map { case (crumb,idx) =>
@@ -127,6 +139,9 @@ class BrowseController extends AppController {
     }.toMap
   }
 
+  /**
+   * Returns an item name from its full key. If it is a folder, add a trailing slash
+   */
   private def getItemName(key: String, itemType: BrowseItemType.Value): String = {
     itemType match {
       case BrowseItemType.folder => {
@@ -139,6 +154,9 @@ class BrowseController extends AppController {
     }
   }
 
+  /**
+   * Make a HEAD request to a publicly exposed asset to get information
+   */
   private def getAssetHeaders(bucket: String, key: String): Option[Map[String,String]] = {
     val s3Url = fullS3AccessUrl + bucket + "/" + key
 
