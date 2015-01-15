@@ -4,7 +4,7 @@
 @import helper._
 
 @(
-  formCreate: Form[_],
+  uploadForm: Form[_],
   uploadError: Option[String] = None
 )(
   implicit
@@ -16,17 +16,19 @@
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
   <div class="row">
     <h2>Upload Assets</h2>
-    <div class="well">
+    <div class="well col-xs-6">
       @helper.form(action=cashyRoutes.UploadController.uploadToS3(), ('enctype -> "multipart/form-data")) {
         <fieldset>
-          @helper.select(formCreate("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, '_label -> "Bucket", '_showConstraints -> false)
-          @helper.inputText(formCreate("assetName"), '_label -> "Asset Name")
-          @helper.inputFile(formCreate("assetFile"), '_label -> "Asset File", 'size -> 10)
+          @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, '_label -> "Bucket", '_showConstraints -> false)
+          @helper.input(uploadForm("assetName"), '_label -> "Asset Name") { (id, name, value, args) =>
+            <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" />
+          }
+          @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10)
           <button class="btn btn-primary">Upload</button>
         </fieldset>
       }
-      @if(formCreate.hasErrors) {
-        @for(error <- formCreate.errors if error.key.isEmpty) {
+      @if(uploadForm.hasErrors) {
+        @for(error <- uploadForm.errors if error.key.isEmpty) {
           <div class="error">
             @error.message
           </div>
