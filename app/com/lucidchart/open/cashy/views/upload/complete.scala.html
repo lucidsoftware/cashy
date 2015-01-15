@@ -4,7 +4,9 @@
 @import helper._
 
 @(
-  assetLink: String
+  assetLink: String,
+  bucket: String,
+  assetName: String
 )(
   implicit
   request: play.api.mvc.Request[_],
@@ -18,7 +20,7 @@
     <div class="well">
       Your asset is located at: <a href="@assetLink" target="_blank">@assetLink</a>
       <br /><br />
-      <a href="@cashyRoutes.UploadController.index()"><button class="btn btn-primary">Upload Another</button></a>
+      <a href="@cashyRoutes.UploadController.index(Some(bucket), Some(assetName))"><button class="btn btn-primary">Upload Another</button></a>
     </div>
   </div>
 }

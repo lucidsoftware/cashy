@@ -68,7 +68,6 @@ class UploadController extends AppController {
         case Some(file) => formWithData
       }
 
-
       formWithFileValidation.fold(
         formWithErrors => {
           Ok(views.html.upload.index(formWithErrors))
@@ -107,7 +106,7 @@ class UploadController extends AppController {
 
               AuditModel.createUploadAudit(user.id, bucket, assetName, assetLink, gzipUploaded)
 
-              Ok(views.html.upload.complete(assetLink))
+              Ok(views.html.upload.complete(assetLink, bucket, assetName))
             } else {
               // If gzip upload happened but this one failed, have to delete the gzip one
               if (gzipUploaded) {
