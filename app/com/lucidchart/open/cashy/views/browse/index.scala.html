@@ -12,10 +12,10 @@
   implicit
   request: play.api.mvc.Request[_],
   buckets: Set[String],
-  userOption: Option[User]
+  user: User
 )
 
-@com.lucidchart.open.cashy.views.html.layouts.main(userOption=userOption) {
+@com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
   <div class="row">
     <h2>@bucketName</h2>
     <ul class="breadcrumb">
@@ -99,7 +99,7 @@
     $('a.asset').click(function(e){
       e.preventDefault();
       var key = $(this).attr('data-key');
-      
+
       $.ajax({
         'type': 'GET',
         'url': '/browse/@bucketName/' + key + '/info',

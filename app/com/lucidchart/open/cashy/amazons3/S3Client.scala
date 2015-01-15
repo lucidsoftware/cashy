@@ -10,7 +10,6 @@ import com.amazonaws.services.s3.model._
 import com.amazonaws.auth.BasicAWSCredentials
 import scala.collection.JavaConverters._
 
-
 case class ListObjectsResponse(
   folders: List[String],
   assets: List[String],
@@ -115,6 +114,5 @@ class S3Client {
     }
 
   }
-
 
 }

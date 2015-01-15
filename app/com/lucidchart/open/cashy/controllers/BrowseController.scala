@@ -25,7 +25,6 @@ class BrowseController extends AppController {
   /**
    * Browse page, authentication required
    */
-  // def index(bucket: String) = index(bucket, "")
   def index(bucket: String, path: String) = AuthAction.authenticatedUser { implicit user =>
     Action {  implicit request =>
       val crumbs = breadcrumbs(path)
@@ -34,17 +33,17 @@ class BrowseController extends AppController {
 
       val listResponse = S3Client.listObjects(bucket, browsePath)
 
-      val folderItems = listResponse.folders.map(f => 
-        BrowseItem(BrowseItemType.folder, 
-          f, 
-          getItemName(f, BrowseItemType.folder), 
+      val folderItems = listResponse.folders.map(f =>
+        BrowseItem(BrowseItemType.folder,
+          f,
+          getItemName(f, BrowseItemType.folder),
           routes.BrowseController.index(bucket, f).url
         ))
 
-      val assetItems = listResponse.assets.map(a => 
+      val assetItems = listResponse.assets.map(a =>
         BrowseItem(BrowseItemType.asset, 
-          a, 
-          getItemName(a, BrowseItemType.asset), 
+          a,
+          getItemName(a, BrowseItemType.asset),
           bucketCloudfrontMap.get(bucket).get + a)
         ).groupBy(a => a.name.stripSuffix(".gz")).map {
           case (name, items) => items.filter(_.name == name)
@@ -52,7 +51,7 @@ class BrowseController extends AppController {
 
       val items = (folderItems ++ assetItems).sortWith(_.name.toLowerCase < _.name.toLowerCase)
 
-      Ok(views.html.browse.index(bucket, path, crumbs, items)(request,buckets,userOption=Some(user)))
+      Ok(views.html.browse.index(bucket, path, crumbs, items))
     }
   }
 

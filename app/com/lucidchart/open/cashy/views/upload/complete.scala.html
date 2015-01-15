@@ -9,10 +9,10 @@
   implicit
   request: play.api.mvc.Request[_],
   buckets: Set[String],
-  userOption: Option[User]
+  user: User
 )
 
-@com.lucidchart.open.cashy.views.html.layouts.main(userOption=userOption) {
+@com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
   <div class="row">
     <h2>Upload Complete</h2>
     <div class="well">

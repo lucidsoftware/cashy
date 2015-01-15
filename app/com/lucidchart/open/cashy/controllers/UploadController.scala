@@ -23,7 +23,7 @@ object UploadController extends UploadController
 class UploadController extends AppController {
 
   val logger = Logger(this.getClass)
-  
+
   val uploadExtensions: List[String] = configuration.getStringList("upload.extensions").get.asScala.toList
   val minNestedDirectories: Int = configuration.getInt("upload.minNestedDirectories").get
   val minGzipSavings: Double = configuration.getDouble("upload.minGzipSavings").get
@@ -52,7 +52,7 @@ class UploadController extends AppController {
 
       val filledForm = uploadForm.fill(UploadFormSubmission(bucket.getOrElse(null), path.getOrElse(null)))
 
-      Ok(views.html.upload.index(filledForm)(request,buckets,userOption=Some(user)))
+      Ok(views.html.upload.index(filledForm))
     }
   }
 
@@ -71,7 +71,7 @@ class UploadController extends AppController {
 
       formWithFileValidation.fold(
         formWithErrors => {
-          Ok(views.html.upload.index(formWithErrors)(request,buckets,userOption=Some(user)))
+          Ok(views.html.upload.index(formWithErrors))
         },
         data => {
 
@@ -107,7 +107,7 @@ class UploadController extends AppController {
 
               AuditModel.createUploadAudit(user.id, bucket, assetName, assetLink, gzipUploaded)
 
-              Ok(views.html.upload.complete(assetLink)(request,buckets,userOption=Some(user)))
+              Ok(views.html.upload.complete(assetLink))
             } else {
               // If gzip upload happened but this one failed, have to delete the gzip one
               if (gzipUploaded) {
@@ -126,7 +126,7 @@ class UploadController extends AppController {
           catch {
             case e: Exception => {
               logger.error("Exception caught when processing upload request", e)
-              Ok(views.html.upload.index(uploadForm.fill(data), Some(e.getMessage))(request,buckets,userOption=Some(user)))
+              Ok(views.html.upload.index(uploadForm.fill(data), Some(e.getMessage)))
             }
           }
 
