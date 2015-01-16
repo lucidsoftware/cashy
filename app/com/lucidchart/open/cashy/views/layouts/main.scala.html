@@ -1,10 +1,11 @@
 @import com.lucidchart.open.cashy.models.User
-@import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
+@import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes, SearchController, SearchParams}
 @(
   title: String = "",
   scripts: List[String] = List(),
   styles: List[String] = List(),
-  userOption: Option[User] = None
+  userOption: Option[User] = None,
+  searchForm: Form[SearchParams] = SearchController.searchForm
 )(
   content: Html
 )(
@@ -57,6 +58,18 @@
         </a>
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
+            <li>
+              @helper.form(action = cashyRoutes.SearchController.search, 'class -> "navbar-form search-bar") {
+                @helper.input(searchForm("q")) { (id, name, value, args) =>
+                  <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search Files" name="@name" id="@id">
+                    <div class="input-group-btn">
+                        <button class="btn btn-default" type="submit"><i class="glyphicon glyphicon-search"></i></button>
+                    </div>
+                  </div>
+                }
+              }
+            </li>
             <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Browse <b class="caret"></b></a>
                 <ul class="dropdown-menu">

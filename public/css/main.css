@@ -6,3 +6,10 @@ dd.error, div.error {
 	color: red;
 }
 
+.search-bar dt {
+	display: none;
+}
+
+.search-bar dl {
+	margin: 0;
+}

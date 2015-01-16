@@ -1,0 +1,34 @@
+@import com.lucidchart.open.cashy.controllers.SearchParams
+@import com.lucidchart.open.cashy.models.{Asset, User}
+@import com.lucidchart.open.cashy.views
+@(
+  searchForm: Form[SearchParams],
+  results: List[Asset]
+)(
+  implicit request: play.api.mvc.Request[_],
+  user: User,
+  buckets: Set[String]
+)
+
+@views.html.layouts.main(
+  title="Search Results",
+  userOption=Some(user),
+  searchForm=searchForm
+) {
+  <h2>Search Results</h2>
+  <hr>
+  @if(results.isEmpty) {
+    <p>No results.</p>
+  } else {
+    @for(result <- results) {
+      <p>
+        <span class="glyphicon glyphicon-file"></span>
+        <a href="@result.link" target="_blank">@result.bucket/@result.key</a>
+      </p>
+    }
+  }
+
+  <style>
+    .glyphicon-file { margin-left: 10px; margin-right: 10px; }
+  </style>
+}

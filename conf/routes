@@ -19,6 +19,8 @@ GET     /browse/:bucket/$path<.+>            com.lucidchart.open.cashy.controlle
 GET     /browse/:bucket/                     com.lucidchart.open.cashy.controllers.BrowseController.index(bucket: String, path ?= "")
 GET     /browse/:bucket                      com.lucidchart.open.cashy.controllers.BrowseController.index(bucket: String, path ?= "")
 
+# Search
+GET     /search                              com.lucidchart.open.cashy.controllers.SearchController.search
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /favicon.ico                         controllers.Assets.at(path="/public", file = "img/favicon.png")
