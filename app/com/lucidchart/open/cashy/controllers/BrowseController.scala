@@ -44,9 +44,15 @@ class BrowseController extends AppController {
         BrowseItem(BrowseItemType.asset, 
           a,
           getItemName(a, BrowseItemType.asset),
-          bucketCloudfrontMap.get(bucket).get + a)
+          bucketCloudfrontMap(bucket) + a)
         ).groupBy(a => a.name.stripSuffix(".gz")).map {
-          case (name, items) => items.filter(_.name == name)
+          case (name, items) => {
+            if (items.size == 1) {
+              items
+            } else {
+              items.filter(_.name == name)
+            }
+          }
         }.flatten
 
       val items = (folderItems ++ assetItems).sortWith(_.name.toLowerCase < _.name.toLowerCase)
@@ -89,7 +95,7 @@ class BrowseController extends AppController {
         contentLength,
         contentType,
         fullS3AccessUrl + bucket + "/" + key,
-        bucketCloudfrontMap.get(bucket).get + key,
+        bucketCloudfrontMap(bucket) + key,
         email,
         cacheControl,
         eTag,
