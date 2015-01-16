@@ -25,13 +25,13 @@ class BrowseController extends AppController {
   /**
    * Browse page, authentication required
    */
-  def index(bucket: String, path: String) = AuthAction.authenticatedUser { implicit user =>
+  def index(bucket: String, path: String, marker: Option[String]) = AuthAction.authenticatedUser { implicit user =>
     Action {  implicit request =>
       val crumbs = breadcrumbs(path)
 
       val browsePath = if (path.endsWith("/") || path.isEmpty) path else path + "/"
 
-      val listResponse = S3Client.listObjects(bucket, browsePath)
+      val listResponse = S3Client.listObjects(bucket, browsePath, marker)
 
       val folderItems = listResponse.folders.map(f =>
         BrowseItem(BrowseItemType.folder,
@@ -51,7 +51,7 @@ class BrowseController extends AppController {
 
       val items = (folderItems ++ assetItems).sortWith(_.name.toLowerCase < _.name.toLowerCase)
 
-      Ok(views.html.browse.index(bucket, path, crumbs, items))
+      Ok(views.html.browse.index(bucket, path, crumbs, items, marker, listResponse.nextMarker))
     }
   }
 

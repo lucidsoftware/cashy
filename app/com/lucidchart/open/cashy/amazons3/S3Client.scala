@@ -13,7 +13,6 @@ import scala.collection.JavaConverters._
 case class ListObjectsResponse(
   folders: List[String],
   assets: List[String],
-  currMarker: Option[String],
   nextMarker: Option[String]
 )
 
@@ -25,6 +24,7 @@ class S3Client {
   protected val uploadCacheTime = configuration.getInt("amazon.s3.upload.cachetime").get
   protected val accessKey = configuration.getString("amazon.s3.credentials.accesskey").get
   protected val secret = configuration.getString("amazon.s3.credentials.secret").get
+  protected val listingMaxKeys = configuration.getInt("amazon.s3.listing.maxKeys").get
 
   protected val awsCredentials = new BasicAWSCredentials(accessKey, secret)
   protected val s3Client = new AmazonS3Client(awsCredentials)
@@ -93,18 +93,23 @@ class S3Client {
     }
   }
 
-  def listObjects(bucketName: String, prefix: String): ListObjectsResponse = {
+  def listObjects(bucketName: String, prefix: String, marker: Option[String] = None): ListObjectsResponse = {
     val listRequest = new ListObjectsRequest()
     listRequest.setBucketName(bucketName)
     listRequest.setPrefix(prefix)
     listRequest.setDelimiter("/")
+    listRequest.setMaxKeys(listingMaxKeys)
+
+    if (marker.isDefined) {
+      listRequest.setMarker(marker.get)
+    }
 
     try {
       val objectListing = s3Client.listObjects(listRequest)
       val folders = objectListing.getCommonPrefixes().asScala.toList
       val assets = objectListing.getObjectSummaries().asScala.toList.map(_.getKey()).filter(_ != prefix)
-      val currentMarker = Option(objectListing.getNextMarker())
-      ListObjectsResponse(folders, assets, None, currentMarker)
+      val nextMarker = Option(objectListing.getNextMarker())
+      ListObjectsResponse(folders, assets, nextMarker)
 
     } catch {
       case e: Exception => {
