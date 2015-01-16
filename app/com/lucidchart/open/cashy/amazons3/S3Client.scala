@@ -8,6 +8,13 @@ import com.amazonaws.{AmazonClientException, AmazonServiceException}
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
 import com.amazonaws.auth.BasicAWSCredentials
+import scala.collection.JavaConverters._
+
+case class ListObjectsResponse(
+  folders: List[String],
+  assets: List[String],
+  nextMarker: Option[String]
+)
 
 object S3Client extends S3Client
 class S3Client {
@@ -17,6 +24,7 @@ class S3Client {
   protected val uploadCacheTime = configuration.getInt("amazon.s3.upload.cachetime").get
   protected val accessKey = configuration.getString("amazon.s3.credentials.accesskey").get
   protected val secret = configuration.getString("amazon.s3.credentials.secret").get
+  protected val listingMaxKeys = configuration.getInt("amazon.s3.listing.maxKeys").get
 
   protected val awsCredentials = new BasicAWSCredentials(accessKey, secret)
   protected val s3Client = new AmazonS3Client(awsCredentials)
@@ -34,6 +42,17 @@ class S3Client {
         } else {
           throw e
         }
+      }
+    }
+  }
+
+  def createFolder(bucketName: String, key: String) {
+    try {
+      s3Client.putObject(bucketName, key, new java.io.ByteArrayInputStream(new Array[Byte](0)), new ObjectMetadata())
+    } catch {
+      case e: AmazonClientException => {
+        Logger.error(s"Error when creating folder (uploading) to S3 $bucketName/$key", e)
+        throw e
       }
     }
   }
@@ -72,6 +91,33 @@ class S3Client {
         throw e
       }
     }
+  }
+
+  def listObjects(bucketName: String, prefix: String, marker: Option[String] = None): ListObjectsResponse = {
+    val listRequest = new ListObjectsRequest()
+    listRequest.setBucketName(bucketName)
+    listRequest.setPrefix(prefix)
+    listRequest.setDelimiter("/")
+    listRequest.setMaxKeys(listingMaxKeys)
+
+    if (marker.isDefined) {
+      listRequest.setMarker(marker.get)
+    }
+
+    try {
+      val objectListing = s3Client.listObjects(listRequest)
+      val folders = objectListing.getCommonPrefixes().asScala.toList
+      val assets = objectListing.getObjectSummaries().asScala.toList.map(_.getKey()).filter(_ != prefix)
+      val nextMarker = Option(objectListing.getNextMarker())
+      ListObjectsResponse(folders, assets, nextMarker)
+
+    } catch {
+      case e: Exception => {
+        Logger.error("Error listing objects")
+        throw e
+      }
+    }
+
   }
 
 }

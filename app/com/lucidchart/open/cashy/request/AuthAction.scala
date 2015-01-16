@@ -46,7 +46,7 @@ trait AuthActionBuilder {
       }
 
       // we discard the auth cookie here mostly for dev purposes
-      Done(Redirect(routes.HomeController.index()).discardingCookies(Auth.discardingCookie).withCookies(origDestCookie))
+      Done(Redirect(routes.HomeController.index()).discardingCookies(Auth.discardingCookie).withCookies(origDestCookie).flashing(AppFlash.error("Must be logged in to view that page")))
     }
   }
 
