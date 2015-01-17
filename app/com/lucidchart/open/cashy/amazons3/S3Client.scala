@@ -117,7 +117,35 @@ class S3Client {
         throw e
       }
     }
+  }
 
+  def listAllObjects(bucketName: String): List[S3SyncAsset] = {
+    val listRequest = new ListObjectsRequest()
+    listRequest.setBucketName(bucketName)
+
+    try {
+      val objectListing = s3Client.listObjects(listRequest)
+      val firstAssets = objectListing.getObjectSummaries().asScala.toList.map(o => S3SyncAsset(o.getKey(), o.getLastModified()))
+      val remainingAssets = listAllObjectsPaged(objectListing)
+
+      // Filter out anyting ending with a / since those aren't really assets
+      (firstAssets ++ remainingAssets).filter(!_.key.endsWith("/"))
+    } catch {
+      case e: Exception => {
+        Logger.error("Error listing objects")
+        throw e
+      }
+    }
+  }
+
+  private def listAllObjectsPaged(previousListing: ObjectListing): List[S3SyncAsset] = {
+    if (!previousListing.isTruncated()) {
+      List()
+    } else {
+      val objectListing = s3Client.listNextBatchOfObjects(previousListing)
+      val assets = objectListing.getObjectSummaries().asScala.toList.map(o => S3SyncAsset(o.getKey(), o.getLastModified()))
+      assets ++ listAllObjectsPaged(objectListing)
+    }
   }
 
 }

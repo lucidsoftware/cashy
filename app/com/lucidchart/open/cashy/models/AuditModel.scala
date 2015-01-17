@@ -9,6 +9,7 @@ import com.lucidchart.open.relate.interp._
 
 object AuditType extends Enumeration {
   val upload  = Value(0, "UPLOAD")
+  val delete  = Value(1, "DELETE")
 }
 
 case class AuditEntry(
@@ -19,24 +20,24 @@ case class AuditEntry(
   created: Date
 )
 
-case class UploadAuditData(
+case class AssetAuditData(
   bucket: String,
   assetKey: String,
   cloudfrontUrl: String,
   gzipped: Boolean
 )
-object UploadAuditData {
-  implicit val uploadDataReads: Reads[UploadAuditData] = (
+object AssetAuditData {
+  implicit val uploadDataReads: Reads[AssetAuditData] = (
     (JsPath \ "bucket").read[String] and
     (JsPath \ "assetKey").read[String] and
     (JsPath \ "cloudfrontUrl").read[String] and
-    (JsPath \ "gzipped").read[Boolean])(UploadAuditData.apply _)
+    (JsPath \ "gzipped").read[Boolean])(AssetAuditData.apply _)
 
-  implicit val uploadDataWrites: Writes[UploadAuditData] = (
+  implicit val uploadDataWrites: Writes[AssetAuditData] = (
     (JsPath \ "bucket").write[String] and
     (JsPath \ "assetKey").write[String] and
     (JsPath \ "cloudfrontUrl").write[String] and
-    (JsPath \ "gzipped").write[Boolean])(unlift(UploadAuditData.unapply))
+    (JsPath \ "gzipped").write[Boolean])(unlift(AssetAuditData.unapply))
 }
 
 object AuditModel extends AuditModel
@@ -62,8 +63,13 @@ class AuditModel {
   }
 
   def createUploadAudit(userId: Long, bucket: String, assetKey: String, cloudfrontUrl: String, gzipped: Boolean) {
-    val uploadData = Json.stringify(Json.toJson(UploadAuditData(bucket, assetKey, cloudfrontUrl, gzipped)))
+    val uploadData = Json.stringify(Json.toJson(AssetAuditData(bucket, assetKey, cloudfrontUrl, gzipped)))
     createAuditEntry(userId, uploadData, AuditType.upload)
+  }
+
+  def createDeleteAudit(userId: Long, bucket: String, assetKey: String, cloudfrontUrl: String, gzipped: Boolean) {
+    val deleteData = Json.stringify(Json.toJson(AssetAuditData(bucket, assetKey, cloudfrontUrl, gzipped)))
+    createAuditEntry(userId, deleteData, AuditType.delete)
   }
 
 }

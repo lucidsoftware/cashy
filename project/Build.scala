@@ -19,6 +19,7 @@ object ApplicationBuild extends Build {
     "com.lucidchart" %% "relate" % "1.7.1",
     "mysql" % "mysql-connector-java" % "5.1.23",
     "org.apache.httpcomponents" % "httpclient" % "4.3.6",
+    "org.apache.commons" % "commons-email" % "1.3.3",
     "com.amazonaws" % "aws-java-sdk" % "1.9.13"
   )
 

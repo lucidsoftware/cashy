@@ -57,10 +57,21 @@ class AssetModel {
 
   def createAsset(bucket: String, key: String, userId: Long) {
     val now = new Date()
+    createAsset(bucket, key, userId, now)
+  }
+
+  def createAsset(bucket: String, key: String, userId: Long, date: Date) {
     DB.withConnection { implicit connection =>
       val assetId = sql"""INSERT INTO `assets`
         (`bucket`, `key`, `user_id`, `created`)
-        VALUES ($bucket, $key, $userId, $now)""".executeInsertLong()
+        VALUES ($bucket, $key, $userId, $date)""".executeInsertLong()
+    }
+  }
+
+  def deleteAsset(id: Long) {
+    DB.withConnection { implicit connection =>
+      sql"""DELETE FROM `assets`
+        WHERE `id` = $id""".execute()
     }
   }
 
@@ -85,6 +96,57 @@ class AssetModel {
         WHERE `key` LIKE $searchTerm
         LIMIT $searchMax
       """.asList(assetParser)
+    }
+  }
+
+  /**
+   * Compare assets in the database to a list of s3 keys
+   *
+   * S3 returns assets in case-sensitive order by key.  By travering our assets by key,
+   * case-sensitive, we can compare it to the list of keys from S3 to see which are missing
+   * and which need to be deleted.
+   *
+   * @param bucket the bucket to filter assets by
+   * @param s3Keys a list of keys for the bucket from s3
+   * @return a tuple that has a list of assets that need to be added to cashy,
+   *         and a list of assets that need to be deleted from cashy
+   */
+  def getChangedAssets(bucket: String, s3Keys: List[String]): Tuple2[List[String], List[Asset]] = {
+    DB.withConnection { implicit connection =>
+      val assets = sql"""
+        SELECT `id`, `bucket`, `key`, `user_id`, `created`
+        FROM `assets`
+        WHERE `bucket` = $bucket
+        ORDER BY `key` ASC
+      """.asIterator(assetParser)
+
+      var assetsToDelete: List[Asset] = List()
+      var assetsToAdd: List[String] = List()
+      val s3Iter = s3Keys.toIterator
+
+      // consume the stream of assets
+      assets.foreach { asset =>
+        // If the asset key is not in s3keys then it should be deleted
+        if (!s3Keys.contains(asset.key)) {
+          assetsToDelete = assetsToDelete ::: List(asset)
+        } else {
+          // Iterate through the s3 keys until we catch up with the cashy assets
+          // any item that was skipped needs to be added to cashy
+          var s3Key = s3Iter.next
+          while(s3Key != asset.key) {
+            assetsToAdd = assetsToAdd ::: List(s3Key)
+            s3Key = s3Iter.next
+          }
+        }
+      }
+
+      // If there are stil things in the iterator they need to be added
+      while(s3Iter.hasNext) {
+        var s3Key = s3Iter.next
+        assetsToAdd = assetsToAdd ::: List(s3Key)
+      }
+
+      (assetsToAdd, assetsToDelete)
     }
   }
 }
