@@ -6,6 +6,7 @@ import com.lucidchart.open.relate.SqlResult
 import java.util.Date
 import play.api.db._
 import play.api.Play.{configuration, current}
+import scala.collection.mutable.MutableList
 
 case class Asset(
   id: Long,
@@ -120,21 +121,21 @@ class AssetModel {
         ORDER BY `key` ASC
       """.asIterator(assetParser)
 
-      var assetsToDelete: List[Asset] = List()
-      var assetsToAdd: List[String] = List()
+      val assetsToDelete: MutableList[Asset] = MutableList()
+      val assetsToAdd: MutableList[String] = MutableList()
       val s3Iter = s3Keys.toIterator
 
       // consume the stream of assets
       assets.foreach { asset =>
         // If the asset key is not in s3keys then it should be deleted
         if (!s3Keys.contains(asset.key)) {
-          assetsToDelete = assetsToDelete ::: List(asset)
+          assetsToDelete += asset
         } else {
           // Iterate through the s3 keys until we catch up with the cashy assets
           // any item that was skipped needs to be added to cashy
           var s3Key = s3Iter.next
           while(s3Key != asset.key) {
-            assetsToAdd = assetsToAdd ::: List(s3Key)
+            assetsToAdd += s3Key
             s3Key = s3Iter.next
           }
         }
@@ -142,11 +143,10 @@ class AssetModel {
 
       // If there are stil things in the iterator they need to be added
       while(s3Iter.hasNext) {
-        var s3Key = s3Iter.next
-        assetsToAdd = assetsToAdd ::: List(s3Key)
+        assetsToAdd += s3Iter.next
       }
 
-      (assetsToAdd, assetsToDelete)
+      (assetsToAdd.toList, assetsToDelete.toList)
     }
   }
 }
