@@ -42,7 +42,7 @@ class AuthController extends AppController {
         None
       )
 
-      val googleUrl = GoogleClient.requestAuthorization(state, routes.AuthController.oauth2Callback(None, None).absoluteURL())
+      val googleUrl = GoogleClient.requestAuthorization(state, routes.AuthController.oauth2Callback(None, None).absoluteURL(true))
 
       Redirect(googleUrl).withCookies(oauthCheckCookie)
     }
@@ -61,7 +61,7 @@ class AuthController extends AppController {
             Unauthorized
           } else {
             // Get the token and google user
-            val token = GoogleClient.requestToken(code.get, routes.AuthController.oauth2Callback(None, None).absoluteURL())
+            val token = GoogleClient.requestToken(code.get, routes.AuthController.oauth2Callback(None, None).absoluteURL(true))
             val googleUser = GoogleClient.getGoogleUser(token)
 
             // Make sure the user's email is in the white list of domains
