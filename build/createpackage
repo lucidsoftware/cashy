@@ -57,7 +57,7 @@ INSTALL_DIR=$PACKAGING_DIR/srv/cashy/bin
 mkdir -p $INSTALL_DIR
 
 cp -r $SERVER_HOME/target/universal/stage/lib $INSTALL_DIR/staged-$VERSION
-sed -e "s/^\(declare -r lib_dir\)\(.*\)\/\.\.\/lib\(.*\)$/\1\2\/staged-$VERSION\3/" $SERVER_HOME/target/universal/stage/bin/cashylive > $INSTALL_DIR/cashy-$VERSION
+sed -e "s/^\(declare -r lib_dir\)\(.*\)\/\.\.\/lib\(.*\)$/\1\2\/staged-$VERSION\3/" $SERVER_HOME/target/universal/stage/bin/cashy > $INSTALL_DIR/cashy-$VERSION
 chmod +x $INSTALL_DIR/cashy-$VERSION
 echo $VERSION > $INSTALL_DIR/staged-version
 
