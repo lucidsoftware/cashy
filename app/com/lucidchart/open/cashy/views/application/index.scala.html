@@ -9,6 +9,36 @@
 )
 
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=userOption) {
+  <div class="row-fluid clearfix">
+    <div class="col-xs-4">
+      <img src="@routes.Assets.at("img/cashy-logo.png")" alt="Cashy" title="Cashy" style="width: 100%">
+    </div>
+    <div class="col-xs-8">
+      <h2>Cashy is a write-once static asset manager for Amazon S3.</h2>
+
+      <h3>Things Cashy Does:</h3>
+      <ul>
+        <li>Allows for browsing the S3 bucket</li>
+        <li>Allows for folder creation</li>
+        <li>Allows for uploading of assets</li>
+        <li>Allow for searching of assets added through Cashy</li>
+        <li>Gzips assets where the gzip savings are significant</li>
+        <li>Sets cache headers on assets automatically</li>
+        <li>Keeps an audit log of assets that are uploaded</li>
+        <li>Syncs with S3 to make sure search results and item information are accurate</li>
+      </ul>
+
+      <h3>Things Cashy Does Not Do:</h3>
+      <ul>
+        <li>Allow deleting of assets</li>
+        <li>Allow renaming of assets</li>
+        <li>Allow moving of assets</li>
+        <li>Allow uploading of assets with the same full name (folders + name)</li>
+        <li>Automatically resize images to the appropriate size for their content</li>
+        <li>Minify javascript</li>
+      </ul>
+    </div>
+  </div>
   <div class="well">
     <a href="https://github.com/lucidsoftware/cashy">Cashy</a>
     was originally created by

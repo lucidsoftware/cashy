@@ -17,3 +17,8 @@ dd.error, div.error {
 .pagination-container {
 	text-align: center;
 }
+
+img.cashy-logo {
+	width: 75px;
+	margin-top: -21px;
+}
