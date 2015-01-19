@@ -13,3 +13,7 @@ dd.error, div.error {
 .search-bar dl {
 	margin: 0;
 }
+
+.pagination-container {
+	text-align: center;
+}

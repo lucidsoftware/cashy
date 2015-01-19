@@ -1,11 +1,12 @@
 package com.lucidchart.open.cashy.models
 
-import java.util.Date
-import play.api.Play.current
-import play.api.db._
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
+import com.lucidchart.open.relate.SqlResult
 import com.lucidchart.open.relate.interp._
+import java.util.Date
+import play.api.db._
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import play.api.Play.{configuration, current}
 
 object AuditType extends Enumeration {
   val upload  = Value(0, "UPLOAD")
@@ -40,8 +41,30 @@ object AssetAuditData {
     (JsPath \ "gzipped").write[Boolean])(unlift(AssetAuditData.unapply))
 }
 
+case class AuditPage(
+  current: Int,
+  max: Int,
+  audits: List[AuditWithUser]
+)
+
+case class AuditWithUser(
+  user: String,
+  data: String,
+  auditType: AuditType.Value,
+  created: Date
+)
+
 object AuditModel extends AuditModel
 class AuditModel {
+  private val pageSize = configuration.getInt("audit.max").get
+  private val auditWithUserParser = { row: SqlResult =>
+    AuditWithUser(
+      row.string("email"),
+      row.string("data"),
+      AuditType(row.int("type")),
+      row.date("created")
+    )
+  }
 
   private def findById(auditId: Long): Option[AuditEntry] = {
     DB.withConnection { implicit connection =>
@@ -70,6 +93,37 @@ class AuditModel {
   def createDeleteAudit(userId: Long, bucket: String, assetKey: String, cloudfrontUrl: String, gzipped: Boolean) {
     val deleteData = Json.stringify(Json.toJson(AssetAuditData(bucket, assetKey, cloudfrontUrl, gzipped)))
     createAuditEntry(userId, deleteData, AuditType.delete)
+  }
+
+  /**
+   * Get a page of AuditWithUser case classes.
+   *
+   * @param page the page number to get
+   * @return a page of AuditWithUser
+   */
+  def getAuditPage(page: Int) = {
+    DB.withConnection { implicit connection =>
+      val audits = sql"""
+        SELECT `user_id`, `email`, `data`, `type`, `created`
+        FROM `users` INNER JOIN (
+          SELECT `user_id`, `data`, `type`, `created`
+          FROM `audits`
+          ORDER BY `created` DESC
+          LIMIT $pageSize
+          OFFSET ${(page - 1) * pageSize}
+        ) as a on users.id = a.user_id
+      """.asList(auditWithUserParser)
+
+      val maxCount = sql"""
+        SELECT COUNT(1) FROM `audits`
+      """.asScalar[Long]
+
+      AuditPage(
+        page,
+        (maxCount / pageSize + (if (maxCount % pageSize != 0) 1 else 0)).asInstanceOf[Int],
+        audits
+      )
+    }
   }
 
 }

@@ -71,9 +71,6 @@
               <div class="item-detail-label">S3 Key</div><div class="item-detail-value" id="itemKey"></div>
             </div>
             <div class="row">
-              <div class="item-detail-label">S3 Url</div><div class="item-detail-value"><a id="itemS3Url" href="" target="_blank"></a></div>
-            </div>
-            <div class="row">
               <div class="item-detail-label">Cloudfront Url</div><div class="item-detail-value"><a id="itemCloudrontUrl" href="" target="_blank"></a></div>
             </div>
             <div class="row">
@@ -96,6 +93,9 @@
             </div>
             <div class="row">
               <div class="item-detail-label">Gzipped</div><div class="item-detail-value" id="itemGzipped"></div>
+            </div>
+            <div class="row">
+              <div class="item-detail-label">S3 Url</div><div class="item-detail-value"><a class="show-s3-url" href="" target="_blank">Click to show</a><a id="itemS3Url" href="" target="_blank"</div>
             </div>
           </div>
         </div>
@@ -129,12 +129,21 @@
           $('#itemGzipped').text(data.gzipped);
 
           $('#itemDetails').show();
+          $('#itemS3Url').hide();
+          $('a.show-s3-url').show();
         },
         complete: function(xhr) {
           console.log(xhr)
         }
       })
 
+    });
+
+    $('a.show-s3-url').click(function(e){
+      e.preventDefault();
+
+      $('#itemS3Url').show();
+      $('a.show-s3-url').hide();
     });
 
     $('#createFolderSubmit').click(function(e) {
