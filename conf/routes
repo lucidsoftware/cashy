@@ -22,6 +22,9 @@ GET     /browse/:bucket                      com.lucidchart.open.cashy.controlle
 # Search
 GET     /search                              com.lucidchart.open.cashy.controllers.SearchController.search
 
+# Audit
+GET     /audit                               com.lucidchart.open.cashy.controllers.AuditController.audit(page: Int ?= 1)
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /favicon.ico                         controllers.Assets.at(path="/public", file = "img/favicon.png")
 GET     /assets/*file                        controllers.Assets.at(path="/public", file)

@@ -1,0 +1,18 @@
+@(
+  currentPage: Int,
+  maxPage: Int
+)(
+  linkGenerator: (Int) => String
+)
+
+<nav class="pagination-container">
+  <ul class="pagination">
+    @for(i <- List(currentPage - 5, 1).max to List(currentPage + 5, maxPage).min) {
+      @if(i == currentPage) {
+        <li><a class="active">@i</a></li>
+      } else {
+        <li><a href="@linkGenerator(i)">@i</a></li>
+      }
+    }
+  </ul>
+</nav>
