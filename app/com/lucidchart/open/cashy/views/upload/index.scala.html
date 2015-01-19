@@ -20,10 +20,10 @@
       @helper.form(action=cashyRoutes.UploadController.uploadToS3(), ('enctype -> "multipart/form-data")) {
         <fieldset>
           @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, '_label -> "Bucket", '_showConstraints -> false)
-          @helper.input(uploadForm("assetName"), '_label -> "Asset Name") { (id, name, value, args) =>
-            <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" />
+          @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10, 'id -> "fileInput")
+          @helper.input(uploadForm("assetName"), '_label -> "Asset Name", 'id -> "fileName") { (id, name, value, args) =>
+            <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
           }
-          @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10)
           <button class="btn btn-primary">Upload</button>
         </fieldset>
       }
@@ -42,4 +42,11 @@
 
     </div>
   </div>
+
+  <script>
+  $('#fileInput').change(function(e) {
+    var fileName = $(this).val().split(/(\\|\/)/g).pop()
+    $('#fileName').val($('#fileName').val() + fileName)
+  });
+  </script>
 }
