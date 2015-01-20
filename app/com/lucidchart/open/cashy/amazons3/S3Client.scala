@@ -60,7 +60,7 @@ class S3Client {
   def uploadToS3(bucketName: String, assetName: String,  bytes: Array[Byte], contentType: Option[String], gzipped: Boolean = false): Boolean = {
     val metadata = new ObjectMetadata
     metadata.setContentLength(bytes.length)
-    metadata.setCacheControl("public; no-transform; max-age=" + uploadCacheTime)
+    metadata.setCacheControl("public, no-transform, max-age=" + uploadCacheTime)
     if (contentType.isDefined)
       metadata.setContentType(contentType.get)
 
