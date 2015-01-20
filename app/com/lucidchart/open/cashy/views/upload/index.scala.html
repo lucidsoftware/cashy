@@ -45,8 +45,16 @@
 
   <script>
   $('#fileInput').change(function(e) {
-    var fileName = $(this).val().split(/(\\|\/)/g).pop()
-    $('#fileName').val($('#fileName').val() + fileName)
+    var assetFullName = $('#fileName').val()
+    var assetFileName = assetFullName.split(/(\\|\/)/g).pop();
+    var uploadFileName = $(this).val().split(/(\\|\/)/g).pop();
+
+    if (assetFileName.length == 0) {
+      $('#fileName').val(assetFullName + uploadFileName);
+    } else {
+      $('#fileName').val(assetFullName.replace(assetFileName, uploadFileName))
+    }
+
   });
   </script>
 }

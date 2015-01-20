@@ -28,6 +28,8 @@ class UploadController extends AppController {
   val minNestedDirectories: Int = configuration.getInt("upload.minNestedDirectories").get
   val minGzipSavings: Double = configuration.getDouble("upload.minGzipSavings").get
 
+  val filenameRegex = """[a-zA-Z0-9-_\.]+""".r
+
   private case class UploadFormSubmission(
     bucket: String,
     assetName: String
@@ -37,6 +39,8 @@ class UploadController extends AppController {
       "bucket" -> text.verifying("Invalid bucket", x => buckets.contains(x)),
       "assetName" -> text.verifying("Enter a name", x => !x.isEmpty)
               .verifying("Must not start with /", x => !x.startsWith("/"))
+              .verifying("Must not contain invalid characters", x => filenameRegex.unapplySeq(x).isDefined)
+              .verifying("Must not contain ./", x => !x.contains("./"))
               .verifying("Must be organized in at least " + minNestedDirectories + " directories", x => x.split("/").length >= minNestedDirectories + 1)
               .verifying("Must end in a valid extension (" + uploadExtensions.map("." + _).mkString(", ") + ")", x => checkExtension(x))
     )(UploadFormSubmission.apply)(UploadFormSubmission.unapply) verifying("Name not available", form => form match {
