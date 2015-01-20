@@ -29,23 +29,32 @@
     <div class="container-fluid">
       <div class="row-fluid">
         <a href="@cashyRoutes.UploadController.index(Some(bucketName), Some(path))"><button class="btn btn-primary">Upload Here</button></a>
-        <button type="button" data-toggle="modal" data-target="#newFolderModal" class="btn btn-primary">Create Folder</button>
 
-        <div id="newFolderModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-            <h3 id="myModalLabel">Create folder in @path</h3>
-          </div>
-          <div class="modal-body">
-            <div>Please only create a folder if you intend to upload to it</div><br />
-            <input id="newFolderName" type="text" placeholder="Folder Name" />
-            <div id="newFolderError" class="error"></div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-            <button id="createFolderSubmit" class="btn btn-primary">Create Folder</button>
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#newFolderModal">
+          Create Folder
+        </button>
+
+        <!-- Modal -->
+        <div class="modal fade" id="newFolderModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Create folder in @path</h4>
+              </div>
+              <div class="modal-body">
+                <div>Please only create a folder if you intend to upload to it</div><br />
+                <input id="newFolderName" type="text" placeholder="Folder Name" />
+                <div id="newFolderError" class="error"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" id="createFolderSubmit" class="btn btn-primary">Create Folder</button>
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
       <div class="row-fluid asset-list">
         <div class="col-xs-3">
