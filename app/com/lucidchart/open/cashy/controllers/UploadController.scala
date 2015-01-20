@@ -28,7 +28,7 @@ class UploadController extends AppController {
   val minNestedDirectories: Int = configuration.getInt("upload.minNestedDirectories").get
   val minGzipSavings: Double = configuration.getDouble("upload.minGzipSavings").get
 
-  val filenameRegex = """[a-zA-Z0-9-_\.]+""".r
+  val filenameRegex = """[a-zA-Z0-9-_\./]+""".r
 
   private case class UploadFormSubmission(
     bucket: String,

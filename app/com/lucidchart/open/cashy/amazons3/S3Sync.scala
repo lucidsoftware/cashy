@@ -49,11 +49,11 @@ class S3Sync extends CloudfrontConfig {
   }
 
   private def checkChangedAssets(bucket: String, allS3Assets: List[S3SyncAsset]) {
-    // Check to see what's missing from cashy, and what needs to be delted from cashy
+    // Check to see what's missing from cashy, and what needs to be deleted from cashy
     val (assetsToAdd, assetsToDelete) = AssetModel.getChangedAssets(bucket, allS3Assets.map(_.key))
 
     // Filter the s3 sync assets
-    val s3AddAssets = allS3Assets.filter(a => assetsToAdd.contains(a.key))
+    val s3AddAssets = allS3Assets.filter(a => assetsToAdd.contains(a.key) && !a.key.endsWith(".gz"))
 
     assetsToDelete.foreach { asset =>
       AssetModel.deleteAsset(asset.id)
