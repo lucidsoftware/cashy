@@ -3,6 +3,7 @@ package com.lucidchart.open.cashy.models
 import play.api.Play.current
 import play.api.db._
 import com.lucidchart.open.relate.interp._
+import com.lucidchart.open.relate.SqlResult
 
 case class User(
   id: Long,
@@ -13,13 +14,27 @@ case class User(
 object UserModel extends UserModel
 class UserModel {
 
+  private val userParser = { row: SqlResult =>
+    User(
+      row.long("id"),
+      row.string("google_id"),
+      row.string("email")
+    )
+  }
+
   def findById(userId: Long): Option[User] = {
     DB.withConnection { implicit connection =>
       sql"""SELECT `id`, `google_id`, `email`
         FROM `users`
-        WHERE `id` = $userId""".asSingleOption { row =>
-          User(row.long("id"), row.string("google_id"), row.string("email"))
-      }
+        WHERE `id` = $userId""".asSingleOption(userParser)
+    }
+  }
+
+  def findByIds(userIds: List[Long]): List[User] = {
+    DB.withConnection { implicit connection =>
+      sql"""SELECT `id`, `google_id`, `email`
+        FROM `users`
+        WHERE `id` IN ($userIds)""".asList(userParser)
     }
   }
 
@@ -28,9 +43,7 @@ class UserModel {
     DB.withConnection { implicit connection =>
       sql"""SELECT `id`, `google_id`, `email`
         FROM `users`
-        WHERE `google_id` = $googleId""".asSingleOption { row =>
-          User(row.long("id"), row.string("google_id"), row.string("email"))
-      }
+        WHERE `google_id` = $googleId""".asSingleOption(userParser)
     }
   }
 

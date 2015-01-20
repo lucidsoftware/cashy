@@ -27,7 +27,17 @@
         <tr>
           <td>@audit.user</td>
           <td>@audit.auditType</td>
-          <td>@audit.data</td>
+          <td>
+            <div>
+              <div class="pull-left"><b>Bucket:</b> @audit.data.bucket</div>
+              <div class="pull-left">&nbsp;<b>Key:</b> @audit.data.assetKey</div>
+              @if(audit.data.gzipped) {
+                <div class="pull-right"><b>Gzipped</b></div>
+              }
+            </div>
+            <br />
+            <div><a href="@audit.data.cloudfrontUrl">@audit.data.cloudfrontUrl</a></div>
+          </td>
           <td>@audit.created</td>
         </tr>
       }

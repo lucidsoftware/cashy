@@ -62,7 +62,8 @@ class S3Sync extends CloudfrontConfig {
 
     s3AddAssets.foreach { s3Asset =>
       AssetModel.createAsset(bucket, s3Asset.key, syncUserId, s3Asset.date)
-      AuditModel.createUploadAudit(syncUserId, bucket, s3Asset.key, bucketCloudfrontMap(bucket) + s3Asset.key, s3Asset.key.endsWith(".gz"))
+      val hasGzip = allS3Assets.exists(a => a.key == s3Asset.key+".gz")
+      AuditModel.createUploadAudit(syncUserId, bucket, s3Asset.key, bucketCloudfrontMap(bucket) + s3Asset.key, hasGzip)
     }
   }
 
