@@ -158,10 +158,14 @@
     $('#createFolderSubmit').click(function(e) {
       e.preventDefault();
       var folderName = $('#newFolderName').val();
+      var folderParent = '@path';
+      if (folderParent.slice(-1) !== '/') {
+        folderParent += '/';
+      }
 
       $.ajax({
         'type': 'POST',
-        'url': '/browse/@bucketName/@path' + folderName + '/create',
+        'url': '/browse/@bucketName/' + folderParent + folderName + '/create',
         success: function(data) {
           if(data.error) {
             $('#newFolderError').text(data.error);
