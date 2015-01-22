@@ -110,7 +110,9 @@ class UploadController extends AppController {
 
               AuditModel.createUploadAudit(user.id, bucket, assetName, assetLink, gzipUploaded)
 
-              Ok(views.html.upload.complete(assetLink, bucket, assetName))
+              val parentFolder = assetName.substring(0, assetName.lastIndexOf("/")+1)
+
+              Ok(views.html.upload.complete(assetLink, bucket, assetName, parentFolder))
             } else {
               // If gzip upload happened but this one failed, have to delete the gzip one
               if (gzipUploaded) {

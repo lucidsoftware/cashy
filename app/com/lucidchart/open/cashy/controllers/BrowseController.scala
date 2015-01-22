@@ -121,6 +121,19 @@ class BrowseController extends AppController {
           throw new Exception("Folder already exists")
         }
 
+        // Make sure its a valid folder name
+        if (folderKey.contains("./")) {
+          throw new Exception("Must not contain ./")
+        }
+
+        if (folderKey.startsWith("/")) {
+          throw new Exception("Must not start with /")
+        }
+
+        if (folderKey.isEmpty()) {
+          throw new Exception("Enter a name")
+        }
+
         S3Client.createFolder(bucket, folderKey)
         Ok
       }
