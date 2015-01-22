@@ -21,6 +21,9 @@
         <fieldset>
           @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, '_label -> "Bucket", '_showConstraints -> false)
           @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10, 'id -> "fileInput")
+          <p>
+            <a href="#" data-toggle="modal" data-target="#imageInstructionModal">Uploading an Image?</a>
+          </p>
           @helper.input(uploadForm("assetName"), '_label -> "Asset Name", 'id -> "fileName") { (id, name, value, args) =>
             <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
           }
@@ -43,6 +46,29 @@
     </div>
   </div>
 
+  <!-- Modal -->
+  <div class="modal fade" id="imageInstructionModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="myModalLabel">Uploading an Image</h4>
+        </div>
+        <div class="modal-body">
+          <ol>
+            <li>Resize it</li>
+            <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="dog_300x300.png">Name it</span></li>
+            <li><a href="http://www.smushit.com/ysmush.it/" target="_blank">Compress it</a></li>
+            <li>Upload it</li>
+          </ol>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
   $('#fileInput').change(function(e) {
     var assetFullName = $('#fileName').val()
@@ -56,5 +82,9 @@
     }
 
   });
+
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+  })
   </script>
 }
