@@ -154,7 +154,7 @@ class BrowseController extends AppController {
   private def breadcrumbs(path: String): List[Tuple2[String,String]] = {
     val crumbs = path.split("/")
     crumbs.zipWithIndex.map { case (crumb,idx) =>
-      (crumb, crumbs.slice(0,idx+1).mkString("/"))
+      (crumb, crumbs.slice(0,idx+1).mkString("/")+"/")
     }.toList
   }
 
