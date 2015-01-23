@@ -21,9 +21,14 @@
         <fieldset>
           @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, '_label -> "Bucket", '_showConstraints -> false)
           @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10, 'id -> "fileInput")
-          <p>
-            <a href="#" data-toggle="modal" data-target="#imageInstructionModal">Uploading an Image?</a>
-          </p>
+          <dl>
+            <dt>Asset Prep</dt>
+            <dd>
+                <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#imageInstructionModal">image</button>
+                <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#jsInstructionModal">javascript</button>
+                <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#cssInstructionModal">css</button>
+            </dd>
+          </dl>
           @helper.input(uploadForm("assetName"), '_label -> "Asset Name", 'id -> "fileName") { (id, name, value, args) =>
             <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
           }
@@ -58,8 +63,54 @@
           <ol>
             <li>Resize it</li>
             <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="dog_300x300.png">Name it</span></li>
-            <li><a href="http://www.smushit.com/ysmush.it/" target="_blank">Compress it</a></li>
+            <li><a href="https://kraken.io/web-interface" target="_blank">Compress it</a></li>
             <li>Upload it</li>
+          </ol>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="jsInstructionModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="myModalLabel">Uploading Javascript</h4>
+        </div>
+        <div class="modal-body">
+          <ol>
+            <li><a href="http://closure-compiler.appspot.com/" target="_blank">Minify it</a></li>
+            <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Add a version number or date to the file">Rename it</span></li>
+            <li>Upload it</li>
+            <li>Consider <span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Concatenate multiple javascript sources together to save HTTP requests">Bundling</span> it</li>
+          </ol>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="cssInstructionModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="myModalLabel">Uploading an Image</h4>
+        </div>
+        <div class="modal-body">
+          <ol>
+            <li><a href="http://cssminifier.com/" target="_blank">Minify it</a></li>
+            <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Add a version number or date to the file">Rename it</span></li>
+            <li>Upload it</li>
+            <li>Consider <span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Concatenate multiple CSS sources together to save HTTP requests">Bundling</span> it</li>
           </ol>
         </div>
         <div class="modal-footer">
