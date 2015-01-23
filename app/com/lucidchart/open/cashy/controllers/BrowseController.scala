@@ -151,11 +151,11 @@ class BrowseController extends AppController {
    * Splits a path e.g. root/folder1/ into a map of folder name and complete paths
    * e.g. root -> root/, folder -> root/folder1/
    */
-  private def breadcrumbs(path: String): Map[String, String] = {
+  private def breadcrumbs(path: String): List[Tuple2[String,String]] = {
     val crumbs = path.split("/")
     crumbs.zipWithIndex.map { case (crumb,idx) =>
-      (crumb -> crumbs.slice(0,idx+1).mkString("/"))
-    }.toMap
+      (crumb, crumbs.slice(0,idx+1).mkString("/"))
+    }.toList
   }
 
   /**

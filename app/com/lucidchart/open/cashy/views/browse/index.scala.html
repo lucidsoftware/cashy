@@ -6,7 +6,7 @@
 @(
   bucketName: String,
   path: String,
-  crumbs: Map[String,String],
+  crumbs: List[Tuple2[String,String]],
   items: List[BrowseItem],
   marker: Option[String],
   nextMarker: Option[String]
