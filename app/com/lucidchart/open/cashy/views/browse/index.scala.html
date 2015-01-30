@@ -183,6 +183,11 @@
       window.history.back();
     });
 
+  // auto focus for folder create
+  $('#newFolderModal').on('shown.bs.modal', function () {
+    $('#newFolderName').focus()
+  })
+
   </script>
 
   <style>
