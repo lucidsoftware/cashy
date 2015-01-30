@@ -77,7 +77,7 @@ class AssetModel {
   }
 
   /**
-   * Search for assets that match a query.
+   * Case-Insensitive Search for assets that match a query.
    *
    * If % characters are included in the query, it is assumed that the user knows what they are
    * doing and the query is used as is. If % is not present in the query, they are appended on
@@ -88,13 +88,13 @@ class AssetModel {
    * using the key "search.max" in application.conf
    */
   def search(query: String): List[Asset] = {
-    val searchTerm = if (query.contains("%")) query else "%" + query + "%"
+    val searchTerm = if (query.contains("%")) query.toLowerCase else "%" + query.toLowerCase + "%"
 
     DB.withConnection { implicit connection =>
       sql"""
         SELECT `id`, `bucket`, `key`, `user_id`, `created`
         FROM `assets`
-        WHERE `key` LIKE $searchTerm
+        WHERE LOWER(`key`) LIKE $searchTerm
         LIMIT $searchMax
       """.asList(assetParser)
     }
