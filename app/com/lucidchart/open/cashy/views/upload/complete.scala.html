@@ -1,13 +1,10 @@
-@import com.lucidchart.open.cashy.models.User
+@import com.lucidchart.open.cashy.models.{Asset, User}
 @import com.lucidchart.open.cashy.views
 @import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
 @import helper._
 
 @(
-  assetLink: String,
-  bucket: String,
-  assetName: String,
-  parentFolder: String
+  asset: Asset
 )(
   implicit
   request: play.api.mvc.Request[_],
@@ -19,10 +16,10 @@
   <div class="row">
     <h2>Upload Complete</h2>
     <div class="well">
-      Your asset is located at: <a href="@assetLink" target="_blank">@assetLink</a>
+      Your asset is located at: <a href="@asset.link" target="_blank">@asset.link</a>
       <br /><br />
-      <a href="@cashyRoutes.UploadController.index(Some(bucket), Some(assetName))"><button class="btn btn-primary">Upload Another</button></a>
-      <a href="@cashyRoutes.BrowseController.index(bucket, parentFolder)"><button class="btn btn-primary">Browse Parent Folder</button></a>
+      <a href="@cashyRoutes.UploadController.index(Some(asset.bucket), Some(asset.parent))"><button class="btn btn-primary">Upload Another</button></a>
+      <a href="@cashyRoutes.BrowseController.index(asset.bucket, asset.parent)"><button class="btn btn-primary">Browse Parent Folder</button></a>
     </div>
   </div>
 }

@@ -23,6 +23,10 @@ case class Asset(
   def link: String = {
     bucketCloudfrontMap(bucket) + key
   }
+
+  def parent: String = {
+    key.substring(0, key.lastIndexOf("/")+1)
+  }
 }
 
 object AssetModel extends AssetModel
@@ -56,14 +60,14 @@ class AssetModel {
     }
   }
 
-  def createAsset(bucket: String, key: String, userId: Long) {
+  def createAsset(bucket: String, key: String, userId: Long): Long = {
     val now = new Date()
     createAsset(bucket, key, userId, now)
   }
 
-  def createAsset(bucket: String, key: String, userId: Long, date: Date) {
+  def createAsset(bucket: String, key: String, userId: Long, date: Date): Long = {
     DB.withConnection { implicit connection =>
-      val assetId = sql"""INSERT INTO `assets`
+      sql"""INSERT INTO `assets`
         (`bucket`, `key`, `user_id`, `created`)
         VALUES ($bucket, $key, $userId, $date)""".executeInsertLong()
     }
