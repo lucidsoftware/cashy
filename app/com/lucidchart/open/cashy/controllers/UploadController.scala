@@ -104,15 +104,12 @@ class UploadController extends AppController {
 
             if(S3Client.uploadToS3(bucket, assetName, bytes, contentType)) {
 
-              AssetModel.createAsset(bucket, assetName, user.id)
+              val assetId = AssetModel.createAsset(bucket, assetName, user.id)
+              val asset = AssetModel.findById(assetId).get
 
-              val assetLink = bucketCloudfrontMap.get(bucket).get + assetName
+              AuditModel.createUploadAudit(user.id, bucket, assetName, asset.link, gzipUploaded)
 
-              AuditModel.createUploadAudit(user.id, bucket, assetName, assetLink, gzipUploaded)
-
-              val parentFolder = assetName.substring(0, assetName.lastIndexOf("/")+1)
-
-              Ok(views.html.upload.complete(assetLink, bucket, assetName, parentFolder))
+              Ok(views.html.upload.complete(asset))
             } else {
               // If gzip upload happened but this one failed, have to delete the gzip one
               if (gzipUploaded) {
