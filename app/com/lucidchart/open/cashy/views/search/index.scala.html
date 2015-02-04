@@ -28,7 +28,7 @@
         <a href="@cashyRoutes.BrowseController.index(result.bucket, result.parent)" target="_blank"><span class="glyphicon glyphicon-folder-open"></span></a>
 
         @if(query.isDefined && !query.get.contains("%")) {
-          <a href="#" class="asset asset-@result.bucket" data-key="@result.key">
+          <a href="@result.link" class="asset asset-@result.bucket" data-key="@result.key">
             <span>@result.bucket/@result.key.substring(0,result.key.toLowerCase.lastIndexOf(query.get.toLowerCase))</span
             ><span class="highlight">@result.key.substring(result.key.toLowerCase.lastIndexOf(query.get.toLowerCase)).take(query.get.length)</span
             ><span>@result.key.substring(result.key.toLowerCase.lastIndexOf(query.get.toLowerCase)+query.get.length)</span>
