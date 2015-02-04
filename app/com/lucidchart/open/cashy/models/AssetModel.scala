@@ -91,7 +91,8 @@ class AssetModel {
    * @return a List of Assets that match the query. The maximum size of this list is configurable
    * using the key "search.max" in application.conf
    */
-  def search(query: String): List[Asset] = {
+  def search(rawQuery: String): List[Asset] = {
+    val query = rawQuery.replace("_", """\_""")
     val searchTerm = if (query.contains("%")) query.toLowerCase else "%" + query.toLowerCase + "%"
 
     DB.withConnection { implicit connection =>
