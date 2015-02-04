@@ -1,10 +1,12 @@
 @import com.lucidchart.open.cashy.controllers.SearchParams
 @import com.lucidchart.open.cashy.models.{Asset, User}
 @import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
+@import com.lucidchart.open.cashy.views.html.helpers.assetDetails
 @import com.lucidchart.open.cashy.views
 @(
   searchForm: Form[SearchParams],
-  results: List[Asset]
+  results: List[Asset],
+  query: Option[String]
 )(
   implicit request: play.api.mvc.Request[_],
   user: User,
@@ -24,12 +26,32 @@
     @for(result <- results) {
       <p>
         <a href="@cashyRoutes.BrowseController.index(result.bucket, result.parent)" target="_blank"><span class="glyphicon glyphicon-folder-open"></span></a>
-        <a href="@result.link" target="_blank">@result.bucket/@result.key</a>
+
+        @if(query.isDefined && !query.get.contains("%")) {
+          <a href="#" class="asset asset-@result.bucket" data-key="@result.key">
+            <span>@result.bucket/@result.key.substring(0,result.key.toLowerCase.lastIndexOf(query.get.toLowerCase))</span
+            ><span class="highlight">@result.key.substring(result.key.toLowerCase.lastIndexOf(query.get.toLowerCase)).take(query.get.length)</span
+            ><span>@result.key.substring(result.key.toLowerCase.lastIndexOf(query.get.toLowerCase)+query.get.length)</span>
+          </a>
+        } else {
+          <a href="#" class="asset-@result.bucket" data-key="@result.key">@result.bucket/@result.key</a>
+        }
       </p>
     }
   }
 
+  @for(bucket <- buckets) {
+    @{ assetDetails(bucket, "asset-" + bucket) }
+  }
+
   <style>
-    .glyphicon-file { margin-left: 10px; margin-right: 10px; }
+    .glyphicon-folder-open { margin-left: 10px; margin-right: 10px; }
+    a.asset {
+      font-size: 16px;
+    }
+    a.asset .highlight {
+      background-color: rgba(52,151,183,.25);
+      font-weight: bolder;
+    }
   </style>
 }

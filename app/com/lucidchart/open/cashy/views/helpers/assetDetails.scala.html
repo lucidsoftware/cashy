@@ -1,0 +1,107 @@
+@(
+  bucketName: String,
+  triggerClass: String
+)
+
+<!-- Modal -->
+<div class="modal fade" id="@bucketName-itemDetails" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="@bucketName-itemName"></h4>
+      </div>
+      <div class="modal-body">
+        <div>
+          <div class="item-detail-label">S3 Key</div><div class="item-detail-value" id="@bucketName-itemKey"></div>
+        </div>
+        <div>
+          <div class="item-detail-label">Cloudfront Url</div><div class="item-detail-value"><a id="@bucketName-itemCloudrontUrl" href="" target="_blank"></a></div>
+        </div>
+        <div>
+          <div class="item-detail-label">Created At</div><div class="item-detail-value" id="@bucketName-itemCreatedAt"></div>
+        </div>
+        <div>
+          <div class="item-detail-label">Created By</div><div class="item-detail-value" id="@bucketName-itemCreatedBy"></div>
+        </div>
+        <div>
+          <div class="item-detail-label">ETag</div><div class="item-detail-value" id="@bucketName-itemETag"></div>
+        </div>
+        <div>
+          <div class="item-detail-label">Content-Type</div><div class="item-detail-value" id="@bucketName-itemContentType"></div>
+        </div>
+        <div>
+          <div class="item-detail-label">Content-Length</div><div class="item-detail-value" id="@bucketName-itemContentLength"></div>
+        </div>
+        <div>
+          <div class="item-detail-label">Cache-Control</div><div class="item-detail-value" id="@bucketName-itemCacheControl"></div>
+        </div>
+        <div>
+          <div class="item-detail-label">Gzipped</div><div class="item-detail-value" id="@bucketName-itemGzipped"></div>
+        </div>
+        <div>
+          <div class="item-detail-label">S3 Url</div><div class="item-detail-value"><a class="show-s3-url" href="" target="_blank">Click to show</a><a id="@bucketName-itemS3Url" href="" target="_blank"></a></div>
+        </div><br />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $('a.@triggerClass').click(function(e){
+    e.preventDefault();
+    var key = $(this).attr('data-key');
+
+    $.ajax({
+      'type': 'GET',
+      'url': '/browse/@bucketName/' + key + '/info',
+      success: function(data) {
+        $('#@bucketName-itemName').text(data.name);
+        $('#@bucketName-itemKey').text(data.key);
+        $('#@bucketName-itemS3Url').text(data.s3Url).attr('href', data.s3Url);
+        $('#@bucketName-itemCloudrontUrl').text(data.cloudfrontUrl).attr('href', data.cloudfrontUrl);
+        $('#@bucketName-itemCreatedAt').text(data.creationDate);
+        $('#@bucketName-itemCreatedBy').text(data.creator);
+        $('#@bucketName-itemETag').text(data.eTag);
+        $('#@bucketName-itemContentType').text(data.contentType);
+        $('#@bucketName-itemContentLength').text(data.size);
+        $('#@bucketName-itemCacheControl').text(data.cacheControl);
+        $('#@bucketName-itemGzipped').text(data.gzipped);
+
+        $('#@bucketName-itemDetails').modal('show');
+        $('#@bucketName-itemS3Url').hide();
+        $('a.show-s3-url').show();
+      },
+      complete: function(xhr) {
+        console.log(xhr)
+      }
+    })
+
+  });
+
+  $('a.show-s3-url').click(function(e){
+    e.preventDefault();
+
+    $('#@bucketName-itemS3Url').show();
+    $('a.show-s3-url').hide();
+  });
+</script> 
+
+<style>
+  #@bucketName-itemName {
+    margin-top: 0;
+  }
+  .item-detail-label {
+    width: 20%;
+    float: left;
+  }
+  .item-detail-value {
+    width: 80%;
+    float: left;
+  }
+  .modal-body > div {
+    min-height: 20px;
+    clear: both;
+  }
+
+</style>

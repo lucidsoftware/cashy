@@ -22,8 +22,8 @@ class SearchController extends AppController {
   def search = AuthAction.authenticatedUser { implicit user =>
     Action { implicit request =>
       searchForm.bindFromRequest.fold(
-        formWithErrors => Ok(views.html.search.index(formWithErrors, Nil)),
-        data => Ok(views.html.search.index(searchForm.bindFromRequest, AssetModel.search(data.q)))
+        formWithErrors => Ok(views.html.search.index(formWithErrors, Nil, None)),
+        data => Ok(views.html.search.index(searchForm.bindFromRequest, AssetModel.search(data.q), Some(data.q)))
       )
     }
   }
