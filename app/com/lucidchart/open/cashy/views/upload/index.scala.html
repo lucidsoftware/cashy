@@ -1,6 +1,7 @@
 @import com.lucidchart.open.cashy.models.User
 @import com.lucidchart.open.cashy.views
 @import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
+@import com.lucidchart.open.cashy.config.Extensions
 @import helper._
 
 @(
@@ -10,6 +11,7 @@
   implicit
   request: play.api.mvc.Request[_],
   buckets: Set[String],
+  extensions: Extensions,
   user: User
 )
 
@@ -27,6 +29,12 @@
                 <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#imageInstructionModal">image</button>
                 <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#jsInstructionModal">javascript</button>
                 <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#cssInstructionModal">css</button>
+            </dd>
+          </dl>
+          <dl id="jsUploadInfo" class="upload-info">
+            <dt>JavaScript Asset</dt>
+            <dd>
+              Your javascript file will be minified and the original and .min version will both be uploaded
             </dd>
           </dl>
           @helper.input(uploadForm("assetName"), '_label -> "Asset Name", 'id -> "fileName") { (id, name, value, args) =>
@@ -121,21 +129,29 @@
   </div>
 
   <script>
+
   $('#fileInput').change(function(e) {
     var assetFullName = $('#fileName').val()
     var assetFileName = assetFullName.split(/(\\|\/)/g).pop();
     var uploadFileName = $(this).val().split(/(\\|\/)/g).pop();
+    var extension = uploadFileName.split(/\./g).pop();
+
+    // Show js additional info
+    if ([@Html(extensions.js.map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
+      $('#jsUploadInfo').show();
+    }
 
     if (assetFileName.length == 0) {
       $('#fileName').val(assetFullName + uploadFileName);
     } else {
-      $('#fileName').val(assetFullName.replace(assetFileName, uploadFileName))
+      $('#fileName').val(assetFullName.replace(assetFileName, uploadFileName));
     }
 
   });
 
   $(function () {
-    $('[data-toggle="tooltip"]').tooltip()
+    $('[data-toggle="tooltip"]').tooltip();
+    $('.upload-info').hide();
   })
   </script>
 }
