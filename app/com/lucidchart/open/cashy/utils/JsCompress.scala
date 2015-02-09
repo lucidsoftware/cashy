@@ -32,7 +32,7 @@ class JsCompress {
 
     val compressor = new JavaScriptCompressor(new StringReader(jsString), errorReporter)
     val output = new StringWriter()
-    compressor.compress(output, -1, true, true, true, true)
+    compressor.compress(output, 500, true, true, true, true)
 
     (Codec.toUTF8(output.toString()), errorReporter.errors.toList)
   }
