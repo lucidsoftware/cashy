@@ -37,6 +37,12 @@
               Your javascript file will be minified and the original and .min version will both be uploaded
             </dd>
           </dl>
+          <dl id="cssUploadInfo" class="upload-info">
+            <dt>CSS Asset</dt>
+            <dd>
+              Your css file will be minified and the original and .min version will both be uploaded
+            </dd>
+          </dl>
           @helper.input(uploadForm("assetName"), '_label -> "Asset Name", 'id -> "fileName") { (id, name, value, args) =>
             <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
           }
@@ -139,6 +145,11 @@
     // Show js additional info
     if ([@Html(extensions(ExtensionType.js).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
       $('#jsUploadInfo').show();
+    }
+
+    // Show css additional info
+    if ([@Html(extensions(ExtensionType.css).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
+      $('#cssUploadInfo').show();
     }
 
     if (assetFileName.length == 0) {
