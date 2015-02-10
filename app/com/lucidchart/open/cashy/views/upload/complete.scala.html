@@ -4,7 +4,10 @@
 @import helper._
 
 @(
-  asset: Asset
+  assets: List[Tuple2[String,Asset]],
+  existingAssets: List[Tuple2[String,Asset]],
+  bucket: String,
+  parent: String
 )(
   implicit
   request: play.api.mvc.Request[_],
@@ -16,10 +19,41 @@
   <div class="row">
     <h2>Upload Complete</h2>
     <div class="well">
-      Your asset is located at: <a href="@asset.link" target="_blank">@asset.link</a>
-      <br /><br />
-      <a href="@cashyRoutes.UploadController.index(Some(asset.bucket), Some(asset.parent))"><button class="btn btn-primary">Upload Another</button></a>
-      <a href="@cashyRoutes.BrowseController.index(asset.bucket, asset.parent)"><button class="btn btn-primary">Browse Parent Folder</button></a>
+      @if(assets.size > 0) {
+        <h3>Assets that were uploaded</h3>
+        @for((assetLabel, asset) <- assets) {
+          <div class="uploaded-asset">
+            <span>@assetLabel:</span><a href="@asset.link" target="_blank">@asset.link</a>
+          </div>
+        }
+      }
+      @if(existingAssets.size > 0) {
+        <h3>Assets that already existed in cashy and were not modified</h3>
+        @for((assetLabel, asset) <- existingAssets) {
+          <div class="uploaded-asset">
+            <span>@assetLabel:</span><a href="@asset.link" target="_blank">@asset.link</a>
+          </div>
+        }
+      }
+      <a href="@cashyRoutes.UploadController.index(Some(bucket), Some(parent))"><button class="btn btn-primary">Upload Another</button></a>
+      <a href="@cashyRoutes.BrowseController.index(bucket, parent)"><button class="btn btn-primary">Browse Parent Folder</button></a>
     </div>
   </div>
 }
+
+<style>
+.uploaded-asset * {
+  font-size: 16px;
+}
+.uploaded-asset span {
+  font-weight: bolder;
+  display: block;
+}
+.uploaded-asset a {
+  display: block;
+}
+.well > a {
+  margin-top: 15px;
+  display: inline-block;
+}
+</style>

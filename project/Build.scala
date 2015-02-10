@@ -20,6 +20,7 @@ object ApplicationBuild extends Build {
     "mysql" % "mysql-connector-java" % "5.1.23",
     "org.apache.httpcomponents" % "httpclient" % "4.3.6",
     "org.apache.commons" % "commons-email" % "1.3.3",
+    "com.yahoo.platform.yui" % "yuicompressor" % "2.4.8",
     "com.amazonaws" % "aws-java-sdk" % "1.9.13"
   )
 
