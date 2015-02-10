@@ -4,7 +4,7 @@ import com.lucidchart.open.cashy.views
 import com.lucidchart.open.cashy.models.{AssetModel, AuditModel, User, Asset}
 import com.lucidchart.open.cashy.request.{AppFlash, AuthAction}
 import com.lucidchart.open.cashy.amazons3.S3Client
-import com.lucidchart.open.cashy.utils.{GzipHelper, FileHandler, JsCompress}
+import com.lucidchart.open.cashy.utils.{GzipHelper, FileHandler, JsCompress, CssCompress}
 import com.lucidchart.open.cashy.config.{ExtensionsConfig, ExtensionType}
 
 import java.io.File
@@ -126,9 +126,36 @@ class UploadController extends AppController with ExtensionsConfig {
 
                 asset
               }
+              case ExtensionType.css => {
+                // Upload the asset
+                val asset = upload(bytes, bucket, assetName, contentType, user)
+
+                if(checkMinified(assetName)) {
+                  assets += (("Minified", asset))
+                } else {
+                  assets += (("Original", asset))
+
+                  // If it is css and not already minified, try to minify it
+                  val extension = getExtension(assetName)
+                  val minAssetName = assetName.substring(0, assetName.toLowerCase.lastIndexOf("." + extension.toLowerCase)) + ".min." + extension
+
+                  // Make sure a min version with this name does not already exist
+                  if(!S3Client.existsInS3(bucket, minAssetName)) {
+                    val minBytes = CssCompress.compress(bytes)
+
+                    val minAsset = upload(minBytes, bucket, minAssetName, contentType, user)
+                    assets += (("Minified", minAsset))
+                  } else {
+                    val minAsset = AssetModel.findByKey(bucket, minAssetName).get
+                    existingAssets += (("Minified", minAsset))
+                  }
+                }
+
+                asset
+              }
               case ExtensionType.valid => {
                 val asset = upload(bytes, bucket, assetName, contentType, user)
-                assets += (("Original" -> asset))
+                assets += (("Original", asset))
                 asset
               }
               case _ => {
