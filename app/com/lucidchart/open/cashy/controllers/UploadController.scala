@@ -5,7 +5,7 @@ import com.lucidchart.open.cashy.models.{AssetModel, AuditModel, User, Asset}
 import com.lucidchart.open.cashy.request.{AppFlash, AuthAction}
 import com.lucidchart.open.cashy.amazons3.S3Client
 import com.lucidchart.open.cashy.utils.{GzipHelper, FileHandler, JsCompress}
-import com.lucidchart.open.cashy.config.ExtensionsConfig
+import com.lucidchart.open.cashy.config.{ExtensionsConfig, ExtensionType}
 
 import java.io.File
 import play.api.Logger
@@ -15,7 +15,7 @@ import play.api.Play.current
 import play.api.Play.configuration
 import play.api.data._
 import play.api.data.Forms._
-import scala.collection.mutable
+import scala.collection.mutable.MutableList
 import validation.Constraints
 
 case class UploadFailedException(message: String) extends Exception(message)
@@ -42,7 +42,7 @@ class UploadController extends AppController with ExtensionsConfig {
               .verifying("Must not contain invalid characters", x => filenameRegex.unapplySeq(x).isDefined)
               .verifying("Must not contain ./", x => !x.contains("./"))
               .verifying("Must be organized in at least " + minNestedDirectories + " directories", x => x.split("/").length >= minNestedDirectories + 1)
-              .verifying("Must end in a valid extension (" + extensions.all.map("." + _).mkString(", ") + ")", x => checkExtension(extensions.all, x))
+              .verifying("Must end in a valid extension (" + extensions(ExtensionType.valid).map("." + _).mkString(", ") + ")", x => getExtensionType(x) != ExtensionType.invalid)
     )(UploadFormSubmission.apply)(UploadFormSubmission.unapply) verifying("Name not available", form => form match {
       case UploadFormSubmission(bucket, assetName) => !S3Client.existsInS3(bucket, assetName)
     })
@@ -90,30 +90,53 @@ class UploadController extends AppController with ExtensionsConfig {
               }
             }
 
-            val assets = mutable.Map[String,Asset]()
+            val assets = MutableList[Tuple2[String,Asset]]()
+            val existingAssets = MutableList[Tuple2[String,Asset]]()
 
-            // If it is javascript and not already minified, try to minify it
-            if (checkExtension(extensions.js, assetName) && !checkMinified(assetName)) {
-              val extension = getExtension(assetName)
-              val minAssetName = assetName.substring(0, assetName.toLowerCase.lastIndexOf("." + extension.toLowerCase)) + ".min." + extension
+            val unmodifiedAsset = getExtensionType(assetName) match {
+              case ExtensionType.js => {
 
-              // Make sure a min version with this name does not already exist
-              if(!S3Client.existsInS3(bucket, minAssetName)) {
-                val (minBytes, compressErrors) = JsCompress.compress(bytes)
+                // Upload the asset
+                val asset = upload(bytes, bucket, assetName, contentType, user)
 
-                if (compressErrors.size > 0) {
-                  throw new UploadFailedException("Minifying javascript failed: " + (bucket, assetName) + "\n" + compressErrors.mkString("\n"))
+                if(checkMinified(assetName)) {
+                  assets += (("Minified", asset))
+                } else {
+                  assets += (("Original", asset))
+
+                  val extension = getExtension(assetName)
+                  val minAssetName = assetName.substring(0, assetName.toLowerCase.lastIndexOf("." + extension.toLowerCase)) + ".min." + extension
+
+                  // Make sure a min version with this name does not already exist
+                  if(!S3Client.existsInS3(bucket, minAssetName)) {
+                    val (minBytes, compressErrors) = JsCompress.compress(bytes)
+
+                    if (compressErrors.size > 0) {
+                      throw new UploadFailedException("Minifying javascript failed: " + (bucket, assetName) + "\n" + compressErrors.mkString("\n"))
+                    }
+
+                    val minAsset = upload(minBytes, bucket, minAssetName, contentType, user)
+                    assets += (("Minified", minAsset))
+                  } else {
+                    // A min version already exists, find it in cashy and return as an existing asset
+                    val minAsset = AssetModel.findByKey(bucket, minAssetName).get
+                    existingAssets += (("Minified", minAsset))
+                  }
                 }
 
-                val minAsset = upload(minBytes, bucket, minAssetName, contentType, user)
-                assets += ("Minified" -> minAsset)
+                asset
+              }
+              case ExtensionType.valid => {
+                val asset = upload(bytes, bucket, assetName, contentType, user)
+                assets += (("Original" -> asset))
+                asset
+              }
+              case _ => {
+                throw new UploadFailedException("Asset type not supported")
               }
             }
 
-            val asset = upload(bytes, bucket, assetName, contentType, user)
-            assets += ("Original" -> asset)
-
-            Ok(views.html.upload.complete(assets.toMap, asset.bucket, asset.parent))
+            Ok(views.html.upload.complete(assets.toList, existingAssets.toList, unmodifiedAsset.bucket, unmodifiedAsset.parent))
 
           }
           catch {
@@ -128,8 +151,8 @@ class UploadController extends AppController with ExtensionsConfig {
     }
   }
 
-  private def maybeGzip(bytes: Array[Byte], bucket: String, assetName: String, contentType: Option[String]): Boolean = {
-    // Check if gzip compression is appropriate
+  // Check if gzip compression saves enough to meet the threshold and uploads to s3 if so
+  private def gzipAndUpload(bytes: Array[Byte], bucket: String, assetName: String, contentType: Option[String]): Boolean = {
     val compressedBytes = GzipHelper.compress(bytes)
     val gzipSavings = (bytes.length - compressedBytes.length) / bytes.length.toDouble
     if (gzipSavings >= minGzipSavings) {
@@ -142,8 +165,9 @@ class UploadController extends AppController with ExtensionsConfig {
     }
   }
 
+  // Upload the asset and its gzip version
   private def upload(bytes: Array[Byte], bucket: String, assetName: String, contentType: Option[String], user: User): Asset = {
-    val gzipUploaded = maybeGzip(bytes, bucket, assetName, contentType)
+    val gzipUploaded = gzipAndUpload(bytes, bucket, assetName, contentType)
 
     // Try to upload the asset to S3
     if(S3Client.uploadToS3(bucket, assetName, bytes, contentType)) {

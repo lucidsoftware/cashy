@@ -1,7 +1,7 @@
 @import com.lucidchart.open.cashy.models.User
 @import com.lucidchart.open.cashy.views
 @import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
-@import com.lucidchart.open.cashy.config.Extensions
+@import com.lucidchart.open.cashy.config.ExtensionType
 @import helper._
 
 @(
@@ -11,7 +11,7 @@
   implicit
   request: play.api.mvc.Request[_],
   buckets: Set[String],
-  extensions: Extensions,
+  extensions: Map[ExtensionType.Value,Set[String]],
   user: User
 )
 
@@ -137,7 +137,7 @@
     var extension = uploadFileName.split(/\./g).pop();
 
     // Show js additional info
-    if ([@Html(extensions.js.map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
+    if ([@Html(extensions(ExtensionType.js).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
       $('#jsUploadInfo').show();
     }
 
