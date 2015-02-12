@@ -2,7 +2,7 @@ package com.lucidchart.open.cashy.amazons3
 
 import com.lucidchart.open.cashy.models.{AssetModel, AuditModel}
 import com.lucidchart.open.cashy.config.CloudfrontConfig
-import com.lucidchart.open.cashy.utils.{Mailer, MailerAddress, MailerMessage}
+import com.lucidchart.open.cashy.utils.{Mailer, MailerAddress, MailerMessage, KrakenClient}
 
 import akka.actor.{Actor, ActorRef, Props, ActorSystem}
 import play.api.Play.{configuration, current}
@@ -25,6 +25,8 @@ class S3Sync extends CloudfrontConfig {
   private val syncUserId = 1 // hard-coded becauase the syncuser is part of evolutions
   private val alertEmail = configuration.getString("mailer.alertEmail").get
   private val fromEmail = configuration.getString("mailer.fromEmail").get
+  private val tempUploadPrefix = configuration.getString("amazon.s3.tempUploadPrefix").get
+  private val krakenEnabled = configuration.getBoolean("kraken.enabled").getOrElse(false)
 
   def schedule() {
     val assetSync = akkaCashySystem.actorOf(Props(new AssetSynchronizer(this)))
@@ -43,7 +45,43 @@ class S3Sync extends CloudfrontConfig {
 
       checkChangedAssets(bucket, allS3Assets)
       checkS3GzAssets(bucket, allS3Assets)
+      deleteTempAssets(bucket, allS3Assets)
+    }
+    if (krakenEnabled) {
+      checkKrakenQuota()
+    }
 
+  }
+
+  private def checkKrakenQuota() {
+    val usageThreshold = configuration.getDouble("kraken.usageAlertThreshold").get
+    val usage = KrakenClient.checkQuota()
+    if (!usage.isDefined || usage.get > usageThreshold) {
+      // Send an email to alert
+      val fromAddress = MailerAddress(fromEmail)
+      val toAddress = MailerAddress(alertEmail)
+
+      val emailText = s"Kraken quota is at ${usage.get}.  Consider upgrading the plan temporarily or disabling kraken until it cycles"
+
+      val message = MailerMessage(
+        fromAddress,
+        None,
+        List(toAddress),
+        Nil,
+        Nil,
+        "[Cashy] Kraken quota almost reached",
+        emailText
+      )
+
+      Mailer.send(message)
+    }
+  }
+
+  private def deleteTempAssets(bucket: String, allS3Assets: List[S3SyncAsset]) {
+    val keysToDelete = allS3Assets.filter(asset => asset.key.startsWith(tempUploadPrefix)).map(_.key)
+
+    keysToDelete.foreach { key =>
+      S3Client.removeFromS3(bucket, key)
     }
 
   }
@@ -98,7 +136,7 @@ class S3Sync extends CloudfrontConfig {
         List(toAddress),
         Nil,
         Nil,
-        "Amazon S3 Gzip Inconsistency",
+        "[Cashy] Amazon S3 Gzip Inconsistency",
         emailText
       )
 
@@ -108,7 +146,7 @@ class S3Sync extends CloudfrontConfig {
   }
 
   /**
-   * A simple Actor that just checks if there have been changes in the configuration file
+   * A simple Actor that synchronizes cashy's database with S3
    */
   private class AssetSynchronizer(synchronizer: S3Sync) extends Actor {
     def receive = {

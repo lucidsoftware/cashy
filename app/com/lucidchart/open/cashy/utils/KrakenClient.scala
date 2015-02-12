@@ -21,6 +21,7 @@ class KrakenClient {
   protected val apiKey = configuration.getString("kraken.apiKey").get
   protected val apiSecret = configuration.getString("kraken.apiSecret").get
   protected val uploadUrl = configuration.getString("kraken.imageUploadUrl").get
+  protected val usageUrl = configuration.getString("kraken.usageUrl").get
 
   def resizeImage(sourceUrl: String, width: Int, height: Int): Array[Byte] = {
     if(enabled) {
@@ -37,7 +38,7 @@ class KrakenClient {
         "url" -> sourceUrl
       )
 
-      val krakenUrl = makeRequest(Json.stringify(authenticatedJson(resizeParams))).get
+      val krakenUrl = makeRequest(Json.stringify(authenticatedJson(Some(resizeParams)))).get
       DownloadHelper.downloadBytes(krakenUrl)
     } else {
       throw KrakenDisabledException()
@@ -53,20 +54,53 @@ class KrakenClient {
         "url" -> sourceUrl
       )
 
-      val krakenUrl = makeRequest(Json.stringify(authenticatedJson(resizeParams))).get
+      val krakenUrl = makeRequest(Json.stringify(authenticatedJson(Some(resizeParams)))).get
       DownloadHelper.downloadBytes(krakenUrl)
     } else {
       throw KrakenDisabledException()
     }
   }
 
-  private def authenticatedJson(data: JsObject): JsValue = {
-    val fullData = Json.obj(
-      "auth" -> Json.obj(
-        "api_key" -> apiKey,
-        "api_secret" -> apiSecret
+  // Returns the ratio of kraken quota used
+  def checkQuota(): Option[Double] = {
+    val httpClient = HttpClientBuilder.create().build()
+
+    val httpPost = new HttpPost(usageUrl)
+    val body = new StringEntity(Json.stringify(authenticatedJson()))
+    body.setContentType("application/json")
+    httpPost.setEntity(body)
+    val response = httpClient.execute(httpPost)
+
+    // Get the kraken response
+    if (response.getStatusLine().getStatusCode() != 200) {
+      None
+    } else {
+      val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
+      val responseJson = Json.parse(responseBody)
+      val success = (responseJson \ "success").asOpt[Boolean].getOrElse(false)
+      if (success) {
+        val used = (responseJson \ "quota_used").asOpt[Double]
+        val total = (responseJson \ "quota_total").asOpt[Double]
+        Some(used.get/total.get)
+      } else {
+        None
+      }
+    }
+  }
+
+  private def authenticatedJson(data: Option[JsObject] = None): JsValue = {
+    val authData = Json.obj(
+        "auth" -> Json.obj(
+          "api_key" -> apiKey,
+          "api_secret" -> apiSecret
+        )
       )
-    ) ++ data
+    val fullData = data match {
+      case None => authData
+      case Some(data) =>
+        authData ++ data
+    }
+
     Json.toJson(fullData)
   }
 
