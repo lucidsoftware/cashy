@@ -16,7 +16,7 @@ class DownloadHelper {
     val response = httpClient.execute(httpGet)
 
     val statusCode = response.getStatusLine().getStatusCode()
-    if (statusCode < 200 || statusCode >= 300) {
+    if (statusCode != 200) {
       throw new DownloadFailedException("Could not retrieve bytes")
     } else {
       val baos = new java.io.ByteArrayOutputStream

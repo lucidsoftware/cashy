@@ -23,6 +23,12 @@ class KrakenClient {
   protected val uploadUrl = configuration.getString("kraken.imageUploadUrl").get
   protected val usageUrl = configuration.getString("kraken.usageUrl").get
 
+  /**
+   * @param sourceUrl the string url of the image that will be resized
+   * @param width the width in pixels for the resized image
+   * @param height the height in pixels for the resized image
+   * @return the bytes of the resized image
+   */
   def resizeImage(sourceUrl: String, width: Int, height: Int): Array[Byte] = {
     if(enabled) {
 
@@ -38,13 +44,17 @@ class KrakenClient {
         "url" -> sourceUrl
       )
 
-      val krakenUrl = makeRequest(Json.stringify(authenticatedJson(Some(resizeParams)))).get
+      val krakenUrl = uploadToKraken(Json.stringify(authenticatedJson(Some(resizeParams))))
       DownloadHelper.downloadBytes(krakenUrl)
     } else {
       throw KrakenDisabledException()
     }
   }
 
+  /**
+   * @param sourceUrl the string url of the image that will be compressed
+   * @return the bytes of the compressed image
+   */
   def compressImage(sourceUrl: String): Array[Byte] = {
     if(enabled) {
 
@@ -54,14 +64,16 @@ class KrakenClient {
         "url" -> sourceUrl
       )
 
-      val krakenUrl = makeRequest(Json.stringify(authenticatedJson(Some(resizeParams)))).get
+      val krakenUrl = uploadToKraken(Json.stringify(authenticatedJson(Some(resizeParams))))
       DownloadHelper.downloadBytes(krakenUrl)
     } else {
       throw KrakenDisabledException()
     }
   }
 
-  // Returns the ratio of kraken quota used
+  /**
+   * @return the ratio of quota used if it was available, or None
+   */
   def checkQuota(): Option[Double] = {
     val httpClient = HttpClientBuilder.create().build()
 
@@ -88,6 +100,10 @@ class KrakenClient {
     }
   }
 
+  /**
+   * @param data optional JsObject to include with the auth data
+   * @return the JsValue including auth data
+   */
   private def authenticatedJson(data: Option[JsObject] = None): JsValue = {
     val authData = Json.obj(
         "auth" -> Json.obj(
@@ -104,7 +120,11 @@ class KrakenClient {
     Json.toJson(fullData)
   }
 
-  private def makeRequest(json: String) = {
+  /**
+   * @param json the stringified json for the kraken upload request
+   * @return the string URL of the krakened image
+   */
+  private def uploadToKraken(json: String): String = {
     val httpClient = HttpClientBuilder.create().build()
 
     val httpPost = new HttpPost(uploadUrl)
@@ -114,7 +134,7 @@ class KrakenClient {
     val response = httpClient.execute(httpPost)
 
     // Get the kraken response
-    val krakenUrlOption = if (response.getStatusLine().getStatusCode() != 200) {
+    if (response.getStatusLine().getStatusCode() != 200) {
       val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
       val responseJson = Json.parse(responseBody)
       val message = (responseJson \ "message").asOpt[String].getOrElse("Unknown error")
@@ -124,12 +144,12 @@ class KrakenClient {
       val responseJson = Json.parse(responseBody)
       val success = (responseJson \ "success").asOpt[Boolean].getOrElse(false)
       if (success) {
-        (responseJson \ "kraked_url").asOpt[String]
+        (responseJson \ "kraked_url").asOpt[String].get
       } else {
-        None
+        val error = (responseJson \ "message").asOpt[String].getOrElse("Unknown error")
+        throw new KrakenFailedException(error)
       }
     }
-    krakenUrlOption
   }
 
 }
