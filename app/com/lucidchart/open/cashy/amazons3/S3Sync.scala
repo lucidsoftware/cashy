@@ -43,14 +43,14 @@ class S3Sync extends CloudfrontConfig {
     buckets.map { bucket =>
       val allS3Assets = S3Client.listAllObjects(bucket)
 
+      deleteTempAssets(bucket, allS3Assets) // Do this first or else they will get uploaded and then deleted every sync
       checkChangedAssets(bucket, allS3Assets)
       checkS3GzAssets(bucket, allS3Assets)
-      deleteTempAssets(bucket, allS3Assets)
     }
+
     if (krakenEnabled) {
       checkKrakenQuota()
     }
-
   }
 
   private def checkKrakenQuota() {
