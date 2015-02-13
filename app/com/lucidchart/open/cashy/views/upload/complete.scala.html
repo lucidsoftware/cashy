@@ -1,13 +1,11 @@
 @import com.lucidchart.open.cashy.models.{Asset, User}
 @import com.lucidchart.open.cashy.views
 @import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
+@import com.lucidchart.open.cashy.uploaders.UploadResult
 @import helper._
 
 @(
-  assets: List[Tuple2[String,Asset]],
-  existingAssets: List[Tuple2[String,Asset]],
-  bucket: String,
-  parent: String
+  uploadResult: UploadResult
 )(
   implicit
   request: play.api.mvc.Request[_],
@@ -19,24 +17,24 @@
   <div class="row">
     <h2>Upload Complete</h2>
     <div class="well">
-      @if(assets.size > 0) {
+      @if(uploadResult.uploadedAssets.size > 0) {
         <h3>Assets that were uploaded</h3>
-        @for((assetLabel, asset) <- assets) {
+        @for((assetLabel, asset) <- uploadResult.uploadedAssets) {
           <div class="uploaded-asset">
             <span>@assetLabel:</span><a href="@asset.link" target="_blank">@asset.link</a>
           </div>
         }
       }
-      @if(existingAssets.size > 0) {
+      @if(uploadResult.existingAssets.size > 0) {
         <h3>Assets that already existed in cashy and were not modified</h3>
-        @for((assetLabel, asset) <- existingAssets) {
+        @for((assetLabel, asset) <- uploadResult.existingAssets) {
           <div class="uploaded-asset">
             <span>@assetLabel:</span><a href="@asset.link" target="_blank">@asset.link</a>
           </div>
         }
       }
-      <a href="@cashyRoutes.UploadController.index(Some(bucket), Some(parent))"><button class="btn btn-primary">Upload Another</button></a>
-      <a href="@cashyRoutes.BrowseController.index(bucket, parent)"><button class="btn btn-primary">Browse Parent Folder</button></a>
+      <a href="@cashyRoutes.UploadController.index(Some(uploadResult.bucket), Some(uploadResult.parent))"><button class="btn btn-primary">Upload Another</button></a>
+      <a href="@cashyRoutes.BrowseController.index(uploadResult.bucket, uploadResult.parent)"><button class="btn btn-primary">Browse Parent Folder</button></a>
     </div>
   </div>
 }

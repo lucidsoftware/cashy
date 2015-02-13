@@ -20,7 +20,7 @@
   <div class="row">
     <h2>Upload Assets</h2>
     <div class="well col-xs-6">
-      @helper.form(action=cashyRoutes.UploadController.uploadToS3(), ('enctype -> "multipart/form-data")) {
+      @helper.form(action=cashyRoutes.UploadController.uploadToS3(), 'id -> "uploadForm", ('enctype -> "multipart/form-data")) {
         <fieldset>
           @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, 'id -> "bucket", '_label -> "Bucket", '_showConstraints -> false)
           @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10, 'id -> "fileInput")
@@ -226,6 +226,9 @@
   #previewImageButton:disabled {
     cursor: wait;
   }
+  #uploadButton:disabled {
+    cursor: wait;
+  }
 </style>
 
 <script>
@@ -420,6 +423,11 @@
 
     }
 
+  });
+
+  $('#uploadButton').click(function() {
+    $(this).attr('disabled', 'true');
+    $('#uploadForm').submit();
   });
 
   $(function () {
