@@ -12,16 +12,17 @@
   request: play.api.mvc.Request[_],
   buckets: Set[String],
   extensions: Map[ExtensionType.Value,Set[String]],
-  user: User
+  user: User,
+  krakenEnabled: Boolean
 )
 
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
   <div class="row">
     <h2>Upload Assets</h2>
     <div class="well col-xs-6">
-      @helper.form(action=cashyRoutes.UploadController.uploadToS3(), ('enctype -> "multipart/form-data")) {
+      @helper.form(action=cashyRoutes.UploadController.uploadToS3(), 'id -> "uploadForm", ('enctype -> "multipart/form-data")) {
         <fieldset>
-          @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, '_label -> "Bucket", '_showConstraints -> false)
+          @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, 'id -> "bucket", '_label -> "Bucket", '_showConstraints -> false)
           @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10, 'id -> "fileInput")
           <dl>
             <dt>Asset Prep</dt>
@@ -43,10 +44,35 @@
               Your css file will be minified and the original and .min version will both be uploaded
             </dd>
           </dl>
+          @if(krakenEnabled) {
+            <dl id="imageUploadInfo" class="upload-info">
+              <dt>Image Asset</dt>
+              <dd>
+                <input type="checkbox" name="resizeImage" id="resizeImage" value="true"/> <label for="resizeImage">Resize Image</label>
+                <div class="check-show">
+                  @helper.input(uploadForm("imageWidth"), '_label -> null, 'id -> "imageWidth", 'size -> 3, '_class -> "inline-input") { (id, name, value, args) =>
+                    <input type="text" name="@name" id="@id" @toHtmlArgs(args) value="@value" />
+                  }px x@helper.input(uploadForm("imageHeight"), '_label -> null, 'id -> "imageHeight", 'size -> 3, '_class -> "inline-input") { (id, name, value, args) =>
+                    <input type="text" name="@name" id="@id" @toHtmlArgs(args) value="@value" />
+                  }px 
+                  <input type="checkbox" id="aspectRatio" class="inline-input" checked="checked" name="aspectRatio"/> <label for="aspectRatio">Keep Aspect Ratio</label>
+                  <div class="resize-error">Resizing to a larger size will distort the image</div>
+                  <div><input type="checkbox" id="uploadRetina" name="uploadRetina" disabled="true" value="true" /> <label for="uploadRetina">Upload Retina Version </label> <span class="retina-error">(Source not large enough)</span></div>
+                  <input type="hidden" id="resizedImage" name="resizedImage" />
+                </div>
+              </dd>
+            </dl>
+          }
           @helper.input(uploadForm("assetName"), '_label -> "Asset Name", 'id -> "fileName") { (id, name, value, args) =>
             <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
           }
-          <button class="btn btn-primary">Upload</button>
+          @if(krakenEnabled) {
+            @helper.input(uploadForm("assetRetinaName"), '_label -> "Retina Name", 'id -> "assetRetinaName", '_id -> "retinaNameContainer") { (id, name, value, args) =>
+              <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
+            }
+          }
+          <button class="btn btn-primary" id="uploadButton">Upload</button>
+          <button class="btn btn-primary" id="previewImageButton">Preview</button>
         </fieldset>
       }
       @if(uploadForm.hasErrors) {
@@ -77,7 +103,6 @@
           <ol>
             <li>Resize it</li>
             <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="dog_300x300.png">Name it</span></li>
-            <li><a href="https://kraken.io/web-interface" target="_blank">Compress it</a></li>
             <li>Upload it</li>
           </ol>
         </div>
@@ -98,7 +123,7 @@
         </div>
         <div class="modal-body">
           <ol>
-            <li><a href="http://closure-compiler.appspot.com/" target="_blank">Minify it</a></li>
+            <li><a href="http://closure-compiler.appspot.com/" target="_blank">Optimize it</a></li>
             <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Add a version number or date to the file">Rename it</span></li>
             <li>Upload it</li>
             <li>Consider <span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Concatenate multiple javascript sources together to save HTTP requests">Bundling</span> it</li>
@@ -117,11 +142,10 @@
       <div class="modal-content">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="myModalLabel">Uploading an Image</h4>
+          <h4 class="modal-title" id="myModalLabel">Uploading CSS</h4>
         </div>
         <div class="modal-body">
           <ol>
-            <li><a href="http://cssminifier.com/" target="_blank">Minify it</a></li>
             <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Add a version number or date to the file">Rename it</span></li>
             <li>Upload it</li>
             <li>Consider <span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Concatenate multiple CSS sources together to save HTTP requests">Bundling</span> it</li>
@@ -134,35 +158,283 @@
     </div>
   </div>
 
-  <script>
+  @if(krakenEnabled) {
+    <!-- modal for krakened image -->
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">Resized Image Preview</h4>
+          </div>
+          <div class="modal-body">
+            Note: Large images will be scaled down.  Click on each image to open it in a new tab.
+            <div id="originalImage">
+              <h2>Original</h2>
+              <a href="" target="_blank"><img src="" /></a>
+            </div>
+            <div id="resizedImage">
+              <h2>Resized</h2>
+              <a href="" target="_blank"><img src="" /></a>
+            </div>
+          </div>
+          <div class="modal-footer" style="clear: left;">
+            <button type="button" class="btn btn-success" id="confirmResizePreview">Resize</button>
+            <button type="button" class="btn btn-danger" id="cancelResizePreview">Don't Resize</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+<style>
+  .check-show {
+    display: none;
+  }
+  input[type="checkbox"]:checked~.check-show {
+    display: block;
+  }
+  dl.inline-input {
+    display: inline-block;
+  }
+  #imageUploadInfo dl {
+    margin-bottom: 0;
+  }
+  #uploadRetina {
+    margin-top: 20px;
+  }
+  .resize-error, .retina-error {
+    color: red;
+  }
+  #imageUploadInfo label {
+    font-weight: normal;
+  }
+  #imageUploadInfo dd.info {
+    display: none;
+  }
+  #resizedImage, #originalImage {
+    max-width: 250px;
+    display: inline-block;
+    float: left;
+    margin-bottom: 20px;
+    margin-right: 10px;
+  }
+
+  #resizedImage img, #originalImage img {
+    max-width: 250px;
+  }
+  #previewImageButton:disabled {
+    cursor: wait;
+  }
+  #uploadButton:disabled {
+    cursor: wait;
+  }
+</style>
+
+<script>
 
   $('#fileInput').change(function(e) {
-    var assetFullName = $('#fileName').val()
+    var assetFullName = $('#fileName').val();
     var assetFileName = assetFullName.split(/(\\|\/)/g).pop();
     var uploadFileName = $(this).val().split(/(\\|\/)/g).pop();
-    var extension = uploadFileName.split(/\./g).pop();
-
-    // Show js additional info
-    if ([@Html(extensions(ExtensionType.js).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
-      $('#jsUploadInfo').show();
-    }
-
-    // Show css additional info
-    if ([@Html(extensions(ExtensionType.css).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
-      $('#cssUploadInfo').show();
-    }
 
     if (assetFileName.length == 0) {
       $('#fileName').val(assetFullName + uploadFileName);
     } else {
       $('#fileName').val(assetFullName.replace(assetFileName, uploadFileName));
     }
+    assetFullName = $('#fileName').val();
+    var extension = assetFullName.split(/\./g).pop();
+    var noExtensionName = assetFullName.substr(0, assetFullName.length - extension.length - 1);
 
+
+    // Show js additional info
+    if ([@Html(extensions(ExtensionType.js).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
+      $('#jsUploadInfo').show();
+    } else {
+      $('#jsUploadInfo').hide();
+    }
+
+    // Show css additional info
+    if ([@Html(extensions(ExtensionType.css).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
+      $('#cssUploadInfo').show();
+    } else {
+      $('#cssUploadInfo').hide();
+    }
+
+    // Show image additional info
+    @if(krakenEnabled) {
+      if ([@Html(extensions(ExtensionType.image).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
+        $('#imageUploadInfo').show();
+
+        // Determine if they can upload
+        var canUpload = true;
+
+        // Figure out the image size
+        var file, img;
+        if ((file = this.files[0])) {
+          img = new Image();
+          img.onload = function() {
+            $('#imageWidth').val(this.width);
+            $('#imageHeight').val(this.height);
+            checkRetina();
+            checkSize();
+          }
+          img.src = URL.createObjectURL(file);
+        }
+
+        // Check if the retina option is available
+        var checkRetina = function() {
+          var resizedWidth = $('#imageWidth').val();
+          var resizedHeight = $('#imageHeight').val();
+
+          if (img.width >= resizedWidth * 2 && img.height >= resizedHeight * 2) {
+            $('#uploadRetina').removeAttr('disabled');
+            $('#assetRetinaName').val(noExtensionName + "@@2x." + extension);
+            $('.retina-error').hide();
+          } else {
+            $('#uploadRetina').attr('disabled', true).removeAttr('checked');
+            $('.retina-error').show();
+          }
+          $('#retinaNameContainer').toggle($('#uploadRetina').is(':checked'));
+        }
+
+        // Change displayed elements based on size
+        var checkSize = function() {
+          var resizedWidth = $('#imageWidth').val();
+          var resizedHeight = $('#imageHeight').val();
+
+          $('.resize-error').toggle(resizedWidth > img.width || resizedHeight > img.height);
+
+          $('#previewImageButton').toggle(resizedWidth != img.width || resizedHeight != img.height);
+        }
+
+        // Listen for changes in width
+        $('#imageWidth').on('input', function() {
+          var width = $(this).val();
+
+          if($('#aspectRatio').is(':checked')) {
+            var ratio = (1.0*img.height) / img.width;
+            var height = Math.round(ratio * width);
+            $('#imageHeight').val(height);
+          }
+          checkRetina();
+          checkSize();
+          setCanUpload(false);
+        });
+
+        // Listen for changes on height
+        $('#imageHeight').on('input', function() {
+          var height = $(this).val();
+
+          if($('#aspectRatio').is(':checked')) {
+            var ratio = (1.0*img.width) / img.height;
+            var width = Math.round(ratio * height);
+            $('#imageWidth').val(width);
+          }
+          checkRetina();
+          checkSize();
+          setCanUpload(false);
+        });
+
+        // Show/hide the retina name based on the retina checkbox
+        $('#uploadRetina').change(function() {
+          $('#retinaNameContainer').toggle($(this).is(':checked'));
+        });
+
+        // Switch the upload buttons
+        var setCanUpload = function(can) {
+          canUpload = can;
+          $('#uploadButton').toggle(canUpload);
+          $('#previewImageButton').toggle(!canUpload);
+        }
+
+        // Switch the upload buttons when the resize image box is un/checked
+        $('#resizeImage').change(function() {
+          setCanUpload(!$(this).is(':checked'));
+        });
+
+        // Update the retina name from filename
+        $('#fileName').on('input', function() {
+          var assetFullName = $(this).val();
+          var extension = assetFullName.split(/\./g).pop();
+          var noExtensionName = assetFullName.substr(0, assetFullName.length - extension.length - 1);
+
+          $('#assetRetinaName').val(noExtensionName + "@@2x." + extension);
+        });
+
+        // Handle preview button for resized images
+        $('#previewImageButton').click(function(e) {
+          e.preventDefault();
+          $('#previewImageButton').attr('disabled', 'true');
+
+          // Send the file and size information with ajax
+          var data = new FormData();
+          data.append('assetFile', file);
+          data.append('bucket', $('#bucket').val());
+          data.append('width', $('#imageWidth').val());
+          data.append('height', $('#imageHeight').val());
+
+          $.ajax({
+            url: '@cashyRoutes.UploadController.krakenPreview()',
+            type: 'POST',
+            data: data,
+            cache: false,
+            dataType: 'json',
+            processData: false,
+            contentType: false,
+            success: function(data) {
+              if(data.error) {
+                alert(data.error)
+              } else {
+                var resizeUrl = data.resizedUrl;
+                $('#resizedImage a').attr('href', resizeUrl);
+                $('#resizedImage img').attr('src', resizeUrl);
+
+                $('#originalImage a').attr('href', img.src);
+                $('#originalImage img').attr('src', img.src);
+
+                $('#resizedImage').val(resizeUrl);
+                $('#imagePreviewModal').modal('show');
+              }
+            },
+            complete: function(xhr) {
+              $('#previewImageButton').removeAttr('disabled');
+            }
+          });
+
+        });
+
+        $('#cancelResizePreview').click(function() {
+          $('#resizeImage').removeAttr('checked');
+          $('#imagePreviewModal').modal('hide');
+          setCanUpload(false);
+        });
+
+        $('#confirmResizePreview').click(function() {
+          $('#imagePreviewModal').modal('hide');
+          setCanUpload(true);
+        });
+
+      } else {
+        $('#imageUploadInfo').hide();
+        $('#previewImageButton').hide();
+      }
+
+    }
+
+  });
+
+  $('#uploadButton').click(function() {
+    $(this).attr('disabled', 'true');
+    $('#uploadForm').submit();
   });
 
   $(function () {
     $('[data-toggle="tooltip"]').tooltip();
     $('.upload-info').hide();
+    $('#retinaNameContainer').hide();
+    $('#previewImageButton').hide();
   })
-  </script>
+</script>
 }

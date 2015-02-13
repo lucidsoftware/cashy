@@ -8,17 +8,20 @@ object ExtensionType extends Enumeration {
   val valid  = Value(1, "VALID")
   val js  = Value(2, "JS")
   val css = Value(3, "CSS")
+  val image = Value(4, "IMG")
 }
 
 trait ExtensionsConfig {
   private val uploadExtensions: Set[String] = configuration.getStringList("upload.extensions").get.asScala.toSet
   private val jsExtensions: Set[String] = configuration.getStringList("upload.jsExtensions").get.asScala.toSet
   private val cssExtensions: Set[String] = configuration.getStringList("upload.cssExtensions").get.asScala.toSet
+  private val imageExtensions: Set[String] = configuration.getStringList("upload.imageExtensions").get.asScala.toSet
 
   implicit val extensions: Map[ExtensionType.Value,Set[String]] = Map(
     ExtensionType.valid -> uploadExtensions,
     ExtensionType.js -> jsExtensions,
-    ExtensionType.css -> cssExtensions
+    ExtensionType.css -> cssExtensions,
+    ExtensionType.image -> imageExtensions
   )
 
   // Returns true if the extension exists (case insensitive)
@@ -32,6 +35,8 @@ trait ExtensionsConfig {
       ExtensionType.js
     } else if (checkExtension(extensions(ExtensionType.css), key)) {
       ExtensionType.css
+    } else if (checkExtension(extensions(ExtensionType.image), key)) {
+      ExtensionType.image
     } else if (checkExtension(extensions(ExtensionType.valid), key)) {
       ExtensionType.valid
     } else {

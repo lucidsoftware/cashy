@@ -25,6 +25,8 @@ class S3Client {
   protected val accessKey = configuration.getString("amazon.s3.credentials.accesskey").get
   protected val secret = configuration.getString("amazon.s3.credentials.secret").get
   protected val listingMaxKeys = configuration.getInt("amazon.s3.listing.maxKeys").get
+  protected val tempUploadPrefix = configuration.getString("amazon.s3.tempUploadPrefix").get
+  protected val s3AccessUrl = configuration.getString("amazon.s3.fullAccessUrl").get
 
   protected val awsCredentials = new BasicAWSCredentials(accessKey, secret)
   protected val s3Client = new AmazonS3Client(awsCredentials)
@@ -81,6 +83,13 @@ class S3Client {
     }
   }
 
+  // Uploads a file to the temp directory in S3 and returns the full amazon s3 url for it
+  def uploadTempFile(bucketName: String, assetName: String, bytes: Array[Byte], contentType: Option[String]): String = {
+    val tempName = tempUploadPrefix + "/" + assetName
+    uploadToS3(bucketName, tempName, bytes, contentType, false)
+    s3AccessUrl + bucketName + "/" + tempName
+  }
+
   def removeFromS3(bucketName: String, assetName: String, gzipped: Boolean = false) {
     val objectName = if(gzipped) assetName + ".gz" else assetName
     try {
@@ -106,8 +115,8 @@ class S3Client {
 
     try {
       val objectListing = s3Client.listObjects(listRequest)
-      val folders = objectListing.getCommonPrefixes().asScala.toList
-      val assets = objectListing.getObjectSummaries().asScala.toList.map(_.getKey()).filter(_ != prefix)
+      val folders = objectListing.getCommonPrefixes().asScala.toList.filter(folder => !folder.startsWith(tempUploadPrefix))
+      val assets = objectListing.getObjectSummaries().asScala.toList.map(_.getKey()).filter(key => key != prefix)
       val nextMarker = Option(objectListing.getNextMarker())
       ListObjectsResponse(folders, assets, nextMarker)
 
