@@ -60,7 +60,7 @@
           <ul class="nav navbar-nav">
             <li>
               @helper.form(action = cashyRoutes.SearchController.search, 'class -> "navbar-form search-bar") {
-                @helper.input(searchForm("q")) { (id, name, value, args) =>
+                @helper.input(searchForm("q"), 'id -> "searchInput") { (id, name, value, args) =>
                   <div class="input-group">
                     <input type="text" class="form-control" placeholder="Search Files" name="@name" id="@id">
                     <div class="input-group-btn">
@@ -138,5 +138,14 @@
     @for(script <- scripts) {
       <script type="text/javascript" src="@routes.Assets.at(script)"></script>
     }
+    <script>
+      // Bind Ctrl+s to focus the search box
+      $(document).keydown(function(e) {
+        if(e.ctrlKey && e.keyCode === 83) {
+          $("#searchInput").focus();
+          return false;
+        }
+      });
+    </script>
   </body>
 </html>
