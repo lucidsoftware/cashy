@@ -4,7 +4,7 @@ import com.lucidchart.open.cashy.views
 import com.lucidchart.open.cashy.request.{AppFlash, AuthAction}
 import com.lucidchart.open.cashy.amazons3.S3Client
 import com.lucidchart.open.cashy.utils.{FileHandler, KrakenClient}
-import com.lucidchart.open.cashy.config.{ExtensionsConfig, ExtensionType}
+import com.lucidchart.open.cashy.config.{ExtensionsConfig, ExtensionType, UploadFeatureConfig}
 import com.lucidchart.open.cashy.uploaders._
 
 import java.io.File
@@ -19,13 +19,11 @@ import play.api.data.Forms._
 import validation.Constraints
 
 object UploadController extends UploadController
-class UploadController extends AppController with ExtensionsConfig {
+class UploadController extends AppController with ExtensionsConfig with UploadFeatureConfig {
 
   val logger = Logger(this.getClass)
 
   val minNestedDirectories: Int = configuration.getInt("upload.minNestedDirectories").get
-
-  implicit val krakenEnabled = configuration.getBoolean("kraken.enabled").getOrElse(false)
 
   val filenameRegex = """[a-zA-Z0-9-_\./@]+""".r
 
@@ -119,7 +117,7 @@ class UploadController extends AppController with ExtensionsConfig {
                 CssUploader.upload(bytes, contentType, user, data)
               }
               case ExtensionType.image => {
-                if (krakenEnabled) {
+                if (uploadFeatures.kraken) {
                   KrakenImageUploader.upload(bytes, contentType, user, data)
                 } else {
                   DefaultUploader.upload(bytes, contentType, user, data)
