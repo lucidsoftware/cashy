@@ -71,7 +71,7 @@
               <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
             }
           }
-          <button class="btn btn-primary" id="uploadButton">Upload</button>
+          <button data-loading-text="Uploading..." class="btn btn-primary" id="uploadButton">Upload</button>
           <button class="btn btn-primary" id="previewImageButton">Preview</button>
         </fieldset>
       }
@@ -425,9 +425,42 @@
 
   });
 
-  $('#uploadButton').click(function() {
-    $(this).attr('disabled', 'true');
-    $('#uploadForm').submit();
+  $('#uploadButton').click(function(event) {
+    $(this).button('loading');
+    $('dd.error').remove();
+    $('dl.error').removeClass('error');
+    $.ajax({
+      url: '@cashyRoutes.UploadController.validate',
+      type: 'post',
+      dataType: 'json',
+      processData: false,
+      contentType: false,
+      data: new FormData($('#uploadForm').get(0)),
+      success: function(data) {
+        if (data.success) {
+          $('#uploadForm').submit();
+        }
+        else {
+          for (key in data) {
+            var error = data[key];
+
+            if (key === 'all') {
+              var dl = $('[name="assetName"]').closest('dl');
+            }
+            else {
+              var dl = $('[name="' + key + '"]').closest('dl');
+            }
+
+            dl.addClass('error');
+            for (var i = 0; i < error.length; i++) {
+              dl.append('<dd class="error">' + error[i] + '</dd>');
+            }
+          }
+          $('#uploadButton').button('reset');
+        }
+      }
+    });
+    return false;
   });
 
   $(function () {

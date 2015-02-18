@@ -206,5 +206,34 @@ class UploadController extends AppController with ExtensionsConfig {
     }
   }
 
-}
+  /**
+   * This method is actually an endpoint that will take take the form and check it. Any errors
+   * will be sent back to the user, or, if the form was valid, return a success message.
+   */
+  def validate = AuthAction.authenticatedUser { implicit user =>
+    Action(parse.multipartFormData(FileHandler.handleFilePartAsByteArray)) { implicit request =>
+      val response = uploadForm.bindFromRequest.fold(
+        formWithErrors => formWithErrors.errors,
+        data => List.empty
+      ).map { error =>
+        (if (error.key != "") error.key else "all") -> error.message
+      } ++ (request.body.file("assetFile") match {
+        case None => {
+          List(("assetFile" -> "File not found."))
+        }
+        case Some(_) => {
+          List.empty
+        }
+      })
 
+      val json = if (response.size == 0) {
+        Json.stringify(Json.obj("success" -> true))
+      }
+      else {
+        Json.stringify(Json.toJson(response.groupBy(_._1).mapValues(_.map(_._2))))
+      }
+      Ok(json).withHeaders("Content-Type" -> "application/json")
+    }
+  }
+
+}
