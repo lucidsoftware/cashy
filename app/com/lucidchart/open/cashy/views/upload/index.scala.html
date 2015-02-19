@@ -2,6 +2,7 @@
 @import com.lucidchart.open.cashy.views
 @import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
 @import com.lucidchart.open.cashy.config.ExtensionType
+@import com.lucidchart.open.cashy.config.UploadFeatures
 @import helper._
 
 @(
@@ -13,7 +14,7 @@
   buckets: Set[String],
   extensions: Map[ExtensionType.Value,Set[String]],
   user: User,
-  krakenEnabled: Boolean
+  uploadFeatures: UploadFeatures
 )
 
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
@@ -32,19 +33,23 @@
                 <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#cssInstructionModal">css</button>
             </dd>
           </dl>
-          <dl id="jsUploadInfo" class="upload-info">
-            <dt>JavaScript Asset</dt>
-            <dd>
-              Your javascript file will be minified and the original and .min version will both be uploaded
-            </dd>
-          </dl>
-          <dl id="cssUploadInfo" class="upload-info">
-            <dt>CSS Asset</dt>
-            <dd>
-              Your css file will be minified and the original and .min version will both be uploaded
-            </dd>
-          </dl>
-          @if(krakenEnabled) {
+          @if(uploadFeatures.compressJsEnabled) {
+            <dl id="jsUploadInfo" class="upload-info">
+              <dt>JavaScript Asset</dt>
+              <dd>
+                Your javascript file will be minified and the original and .min version will both be uploaded
+              </dd>
+            </dl>
+          }
+          @if(uploadFeatures.compressCssEnabled) {
+            <dl id="cssUploadInfo" class="upload-info">
+              <dt>CSS Asset</dt>
+              <dd>
+                Your css file will be minified and the original and .min version will both be uploaded
+              </dd>
+            </dl>
+          }
+          @if(uploadFeatures.krakenEnabled) {
             <dl id="imageUploadInfo" class="upload-info">
               <dt>Image Asset</dt>
               <dd>
@@ -66,7 +71,7 @@
           @helper.input(uploadForm("assetName"), '_label -> "Asset Name", 'id -> "fileName") { (id, name, value, args) =>
             <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
           }
-          @if(krakenEnabled) {
+          @if(uploadFeatures.krakenEnabled) {
             @helper.input(uploadForm("assetRetinaName"), '_label -> "Retina Name", 'id -> "assetRetinaName", '_id -> "retinaNameContainer") { (id, name, value, args) =>
               <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
             }
@@ -158,7 +163,7 @@
     </div>
   </div>
 
-  @if(krakenEnabled) {
+  @if(uploadFeatures.krakenEnabled) {
     <!-- modal for krakened image -->
     <div class="modal fade" id="imagePreviewModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
       <div class="modal-dialog">
@@ -249,21 +254,21 @@
 
 
     // Show js additional info
-    if ([@Html(extensions(ExtensionType.js).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
+    if (@uploadFeatures.compressJsEnabled && [@Html(extensions(ExtensionType.js).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
       $('#jsUploadInfo').show();
     } else {
       $('#jsUploadInfo').hide();
     }
 
     // Show css additional info
-    if ([@Html(extensions(ExtensionType.css).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
+    if (@uploadFeatures.compressCssEnabled && [@Html(extensions(ExtensionType.css).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
       $('#cssUploadInfo').show();
     } else {
       $('#cssUploadInfo').hide();
     }
 
     // Show image additional info
-    @if(krakenEnabled) {
+    @if(uploadFeatures.krakenEnabled) {
       if ([@Html(extensions(ExtensionType.image).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
         $('#imageUploadInfo').show();
 
