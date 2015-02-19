@@ -24,7 +24,7 @@ class JsUploader extends Uploader with UploadFeatureConfig {
         } else {
           uploadedAssets += (("Original", asset))
 
-          if(uploadFeatures.compressJs) {
+          if(uploadFeatures.compressJsEnabled) {
             val extension = getExtension(assetName)
             val minAssetName = assetName.substring(0, assetName.toLowerCase.lastIndexOf("." + extension.toLowerCase)) + ".min." + extension
 

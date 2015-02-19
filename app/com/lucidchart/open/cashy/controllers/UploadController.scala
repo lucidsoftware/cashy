@@ -117,7 +117,7 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
                 CssUploader.upload(bytes, contentType, user, data)
               }
               case ExtensionType.image => {
-                if (uploadFeatures.kraken) {
+                if (uploadFeatures.krakenEnabled) {
                   KrakenImageUploader.upload(bytes, contentType, user, data)
                 } else {
                   DefaultUploader.upload(bytes, contentType, user, data)

@@ -3,9 +3,9 @@ package com.lucidchart.open.cashy.config
 import play.api.Play.{configuration, current}
 
 case class UploadFeatures(
-	kraken: Boolean,
-	compressJs: Boolean,
-	compressCss: Boolean
+	krakenEnabled: Boolean,
+	compressJsEnabled: Boolean,
+	compressCssEnabled: Boolean
 )
 
 trait UploadFeatureConfig {

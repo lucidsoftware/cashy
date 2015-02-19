@@ -25,7 +25,7 @@ class CssUploader extends Uploader with UploadFeatureConfig {
       uploadedAssets += (("Original", asset))
 
       // If it is css and not already minified, try to minify it
-      if(uploadFeatures.compressCss) {
+      if(uploadFeatures.compressCssEnabled) {
         val extension = getExtension(assetName)
         val minAssetName = assetName.substring(0, assetName.toLowerCase.lastIndexOf("." + extension.toLowerCase)) + ".min." + extension
 
