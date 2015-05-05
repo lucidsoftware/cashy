@@ -13,7 +13,8 @@ case class Asset(
   bucket: String,
   key: String,
   userId: Long,
-  created: Date
+  created: Date,
+  hidden: Boolean
 ) extends CloudfrontConfig {
   /**
    * Return a link to this Asset in Cloudfront.
@@ -38,13 +39,14 @@ class AssetModel {
       row.string("bucket"),
       row.string("key"),
       row.long("user_id"),
-      row.date("created")
+      row.date("created"),
+      row.bool("hidden")
     )
   }
 
   def findById(assetId: Long): Option[Asset] = {
     DB.withConnection { implicit connection =>
-      sql"""SELECT `id`, `bucket`, `key`, `user_id`, `created`
+      sql"""SELECT `id`, `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
         WHERE `id` = $assetId""".asSingleOption(assetParser)
     }
@@ -52,10 +54,20 @@ class AssetModel {
 
   def findByKey(bucketName: String, key: String): Option[Asset] = {
     DB.withConnection { implicit connection =>
-      sql"""SELECT `id`, `bucket`, `key`, `user_id`, `created`
+      sql"""SELECT `id`, `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
-        WHERE `key` = $key AND `bucket` = $bucketName""".asSingleOption { row =>
-          Asset(row.long("id"), row.string("bucket"), row.string("key"), row.long("user_id"), row.date("created"))
+        WHERE `key` = $key AND `bucket` = $bucketName""".asSingleOption(assetParser)
+    }
+  }
+
+  def findByKeys(bucketName: String, keys: List[String]): List[Asset] = {
+    if (keys.isEmpty) {
+      Nil
+    } else {
+      DB.withConnection { implicit connection =>
+        sql"""SELECT `id`, `bucket`, `key`, `user_id`, `created`, `hidden`
+          FROM `assets`
+          WHERE `key` IN ($keys) AND `bucket` = $bucketName""".asList(assetParser)
       }
     }
   }
@@ -70,6 +82,12 @@ class AssetModel {
       sql"""INSERT INTO `assets`
         (`bucket`, `key`, `user_id`, `created`)
         VALUES ($bucket, $key, $userId, $date)""".executeInsertLong()
+    }
+  }
+
+  def updateHidden(id: Long, hidden: Boolean) {
+    DB.withConnection { implicit connection =>
+      sql"""UPDATE `assets` SET `hidden` = $hidden WHERE `id` = $id""".executeUpdate()
     }
   }
 
@@ -97,7 +115,7 @@ class AssetModel {
 
     DB.withConnection { implicit connection =>
       sql"""
-        SELECT `id`, `bucket`, `key`, `user_id`, `created`
+        SELECT `id`, `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
         WHERE LOWER(`key`) LIKE $searchTerm
         LIMIT $searchMax
@@ -120,7 +138,7 @@ class AssetModel {
   def getChangedAssets(bucket: String, s3Keys: List[String]): Tuple2[List[String], List[Asset]] = {
     DB.withConnection { implicit connection =>
       val assets = sql"""
-        SELECT `id`, `bucket`, `key`, `user_id`, `created`
+        SELECT `id`, `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
         WHERE `bucket` = $bucket
         ORDER BY `key` ASC
@@ -146,7 +164,7 @@ class AssetModel {
         }
       }
 
-      // If there are stil things in the iterator they need to be added
+      // If there are still things in the iterator they need to be added
       while(s3Iter.hasNext) {
         assetsToAdd += s3Iter.next
       }

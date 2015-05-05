@@ -17,9 +17,12 @@ POST    /upload/validate                    com.lucidchart.open.cashy.controller
 # Browsing
 GET     /browse/:bucket/$path<.+>/info       com.lucidchart.open.cashy.controllers.BrowseController.assetInfo(bucket: String, path: String)
 POST    /browse/:bucket/$path<.+>/create     com.lucidchart.open.cashy.controllers.BrowseController.createFolder(bucket: String, path: String)
+POST    /browse/:bucket/$path<.+>/hide       com.lucidchart.open.cashy.controllers.BrowseController.hide(bucket: String, path: String)
+POST    /browse/:bucket/$path<.+>/show       com.lucidchart.open.cashy.controllers.BrowseController.show(bucket: String, path: String)
 GET     /browse/:bucket/$path<.+>            com.lucidchart.open.cashy.controllers.BrowseController.index(bucket: String, path: String, marker: Option[String] ?= None)
 GET     /browse/:bucket/                     com.lucidchart.open.cashy.controllers.BrowseController.index(bucket: String, path ?= "", marker: Option[String] ?= None)
 GET     /browse/:bucket                      com.lucidchart.open.cashy.controllers.BrowseController.index(bucket: String, path ?= "", marker: Option[String] ?= None)
+
 
 # Search
 GET     /search                              com.lucidchart.open.cashy.controllers.SearchController.search

@@ -23,20 +23,36 @@
   @if(results.isEmpty) {
     <p>No results.</p>
   } else {
-    @for(result <- results) {
-      <p>
-        <a href="@cashyRoutes.BrowseController.index(result.bucket, result.parent)" target="_blank"><span class="glyphicon glyphicon-folder-open"></span></a>
-
-        @if(query.isDefined && !query.get.contains("%")) {
-          <a href="@result.link" class="asset asset-@result.bucket" data-key="@result.key">
-            <span>@result.bucket/@result.key.substring(0,result.key.toLowerCase.lastIndexOf(query.get.toLowerCase))</span
-            ><span class="highlight">@result.key.substring(result.key.toLowerCase.lastIndexOf(query.get.toLowerCase)).take(query.get.length)</span
-            ><span>@result.key.substring(result.key.toLowerCase.lastIndexOf(query.get.toLowerCase)+query.get.length)</span>
-          </a>
+    <div class="row-fluid asset-list">
+      @for(result <- results) {
+        @if(result.hidden) {
+        <div class="asset-row hidden">
         } else {
-          <a href="#" class="asset-@result.bucket" data-key="@result.key">@result.bucket/@result.key</a>
+        <div class="asset-row">
         }
-      </p>
+          <a href="@cashyRoutes.BrowseController.index(result.bucket, result.parent)" target="_blank"><span class="glyphicon glyphicon-folder-open"></span></a>
+
+          @if(query.isDefined && !query.get.contains("%")) {
+            <a href="@result.link" class="asset asset-@result.bucket" data-key="@result.key">
+              <span>@result.bucket/@result.key.substring(0,result.key.toLowerCase.lastIndexOf(query.get.toLowerCase))</span
+              ><span class="highlight">@result.key.substring(result.key.toLowerCase.lastIndexOf(query.get.toLowerCase)).take(query.get.length)</span
+              ><span>@result.key.substring(result.key.toLowerCase.lastIndexOf(query.get.toLowerCase)+query.get.length)</span>
+            </a>
+          } else {
+            <a href="#" class="asset-@result.bucket" data-key="@result.key">@result.bucket/@result.key</a>
+          }
+        </div>
+      }
+
+    </div>
+
+    @defining(results.count(_.hidden)) { hiddenCount =>
+      @if(hiddenCount > 0) {
+        <div>
+          <a id="showHidden">Show <span class="hidden-count"></span> hidden item(s)</a>
+          <a id="hideHidden">Hide <span class="hidden-count"></span> item(s)</a>
+        </div>
+      }
     }
   }
 
@@ -44,14 +60,69 @@
     @{ assetDetails(bucket, "asset-" + bucket) }
   }
 
+  <script>
+    var hiddenCount = @results.count(_.hidden);
+
+    var showHidden = $.cookie('showHiddenAssets') == "true";
+
+    var showHiddenItems = function() {
+      $(".asset-row.hidden").addClass("show-opaque");
+      showHidden = true;
+      $("#hideHidden").toggle(showHidden);
+      $("#showHidden").toggle(!showHidden);
+      $.cookie('showHiddenAssets', true);
+    }
+
+    var hideHiddenItems = function() {
+      $(".asset-row.hidden").removeClass("show-opaque");
+      showHidden = false;
+      $("#hideHidden").toggle(showHidden);
+      $("#showHidden").toggle(!showHidden);
+      $.cookie('showHiddenAssets', false);
+    }
+
+    if (showHidden) {
+      showHiddenItems();
+    } else {
+      hideHiddenItems();
+    }
+
+    var updateHiddenCount = function() {
+      $(".hidden-count").html(hiddenCount);
+    }
+
+    updateHiddenCount();
+
+    $("#showHidden").click(showHiddenItems);
+    $("#hideHidden").click(hideHiddenItems);
+  </script>
+
   <style>
     .glyphicon-folder-open { margin-left: 10px; margin-right: 10px; }
-    a.asset {
-      font-size: 16px;
-    }
     a.asset .highlight {
       background-color: rgba(52,151,183,.25);
       font-weight: bolder;
+    }
+    .asset-list {
+      margin-top: 20px;
+    }
+    .asset-list .asset-row span {
+      margin-right: 5px;
+      width: 20px;
+    }
+    .asset-row {
+      margin-bottom: 4px;
+    }
+    .asset-row a {
+      font-size: 16px;
+    }
+    .asset-row.hidden.show-opaque {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 0.5;
+    }
+    #hideHidden, #showHidden {
+      cursor: pointer;
     }
   </style>
 }
