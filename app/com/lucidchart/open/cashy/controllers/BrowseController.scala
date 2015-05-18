@@ -174,7 +174,7 @@ class BrowseController extends AppController {
         if (key.endsWith("/")) {
           // It is a folder
           FolderModel.findByKey(bucket, key) match {
-            case Some(folder) => FolderModel.updateHidden(folder.id, hidden)
+            case Some(folder) => FolderModel.updateHidden(folder.bucket, folder.key, hidden)
             case None => FolderModel.createFolder(bucket, key, hidden)
           }
         } else {

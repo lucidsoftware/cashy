@@ -7,7 +7,6 @@ import play.api.db._
 import play.api.Play.current
 
 case class Folder(
-  id: Long,
   bucket: String,
   key: String,
   created: Date,
@@ -18,7 +17,6 @@ object FolderModel extends FolderModel
 class FolderModel {
   private val folderParser = { row: SqlResult =>
     Folder(
-      row.long("id"),
       row.string("bucket"),
       row.string("key"),
       row.date("created"),
@@ -26,17 +24,9 @@ class FolderModel {
     )
   }
 
-  def findById(folderId: Long): Option[Folder] = {
-    DB.withConnection { implicit connection =>
-      sql"""SELECT `id`, `bucket`, `key`, `created`, `hidden`
-        FROM `folders`
-        WHERE `id` = $folderId""".asSingleOption(folderParser)
-    }
-  }
-
   def findByKey(bucketName: String, key: String): Option[Folder] = {
     DB.withConnection { implicit connection =>
-      sql"""SELECT `id`, `bucket`, `key`, `created`, `hidden`
+      sql"""SELECT `bucket`, `key`, `created`, `hidden`
         FROM `folders`
         WHERE `key` = $key AND `bucket` = $bucketName""".asSingleOption(folderParser)
     }
@@ -47,24 +37,24 @@ class FolderModel {
       Nil
     } else {
       DB.withConnection { implicit connection =>
-        sql"""SELECT `id`, `bucket`, `key`, `created`, `hidden`
+        sql"""SELECT `bucket`, `key`, `created`, `hidden`
           FROM `folders`
           WHERE `key` IN ($keys) AND `bucket` = $bucketName""".asList(folderParser)
       }
     }
   }
 
-  def updateHidden(id: Long, hidden: Boolean) {
+  def updateHidden(bucket: String, key: String, hidden: Boolean) {
     DB.withConnection { implicit connection =>
-      sql"""UPDATE `folders` SET `hidden` = $hidden WHERE `id` = $id""".executeUpdate()
+      sql"""UPDATE `folders` SET `hidden` = $hidden WHERE `bucket` = $bucket AND `key` = $key""".executeUpdate()
     }
   }
 
-  def createFolder(bucket: String, key: String, hidden: Boolean): Long = {
+  def createFolder(bucket: String, key: String, hidden: Boolean) {
     DB.withConnection { implicit connection =>
       sql"""INSERT INTO `folders`
         (`bucket`, `key`, `created`, `hidden`)
-        VALUES ($bucket, $key, ${new Date}, $hidden)""".executeInsertLong()
+        VALUES ($bucket, $key, ${new Date}, $hidden)""".execute()
     }
   }
 
