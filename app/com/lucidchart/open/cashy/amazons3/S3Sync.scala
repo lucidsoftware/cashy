@@ -95,7 +95,7 @@ class S3Sync extends CloudfrontConfig {
     val s3AddAssets = allS3Assets.filter(a => assetsToAdd.contains(a.key) && !a.key.endsWith(".gz"))
 
     assetsToDelete.foreach { asset =>
-      AssetModel.deleteAsset(asset.id)
+      AssetModel.deleteAsset(asset.bucket, asset.key)
       AuditModel.createDeleteAudit(syncUserId, asset.bucket, asset.key, asset.link, asset.key.endsWith(".gz"))
     }
 

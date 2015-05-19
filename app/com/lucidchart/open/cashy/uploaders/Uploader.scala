@@ -51,8 +51,8 @@ trait Uploader extends ExtensionsConfig {
 
     // Try to upload the asset to S3
     if(S3Client.uploadToS3(bucket, assetName, bytes, contentType)) {
-      val assetId = AssetModel.createAsset(bucket, assetName, user.id)
-      val asset = AssetModel.findById(assetId).get
+      AssetModel.createAsset(bucket, assetName, user.id)
+      val asset = AssetModel.findByKey(bucket, assetName).get
 
       AuditModel.createUploadAudit(user.id, bucket, assetName, asset.link, gzipUploaded)
       asset

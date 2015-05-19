@@ -179,7 +179,7 @@ class BrowseController extends AppController {
           }
         } else {
           AssetModel.findByKey(bucket, key) match {
-            case Some(asset) => AssetModel.updateHidden(asset.id, hidden)
+            case Some(asset) => AssetModel.updateHidden(asset.bucket, asset.key, hidden)
             case None => throw new Exception("Asset does not exist")
           }
         }
