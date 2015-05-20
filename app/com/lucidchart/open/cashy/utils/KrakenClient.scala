@@ -45,7 +45,7 @@ class KrakenClient {
       )
 
       val krakenUrl = uploadToKraken(Json.stringify(authenticatedJson(Some(resizeParams))))
-      DownloadHelper.downloadBytes(krakenUrl)
+      DownloadHelper.download(krakenUrl).bytes
     } else {
       throw KrakenDisabledException()
     }
@@ -65,7 +65,7 @@ class KrakenClient {
       )
 
       val krakenUrl = uploadToKraken(Json.stringify(authenticatedJson(Some(resizeParams))))
-      DownloadHelper.downloadBytes(krakenUrl)
+      DownloadHelper.download(krakenUrl).bytes
     } else {
       throw KrakenDisabledException()
     }
@@ -93,7 +93,9 @@ class KrakenClient {
       if (success) {
         val used = (responseJson \ "quota_used").asOpt[Double]
         val total = (responseJson \ "quota_total").asOpt[Double]
-        Some(used.get/total.get)
+        for (usedVal <- used; totalVal <- total) yield {
+          usedVal/totalVal
+        }
       } else {
         None
       }

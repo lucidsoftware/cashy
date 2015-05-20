@@ -6,17 +6,22 @@ import org.apache.http.impl.client.HttpClientBuilder
 
 case class DownloadFailedException(message: String) extends Exception(message)
 
+case class DownloadResult(
+  bytes: Array[Byte],
+  contentType: Option[String]
+)
+
 object DownloadHelper extends DownloadHelper
 class DownloadHelper {
 
-  def downloadBytes(url: String): Array[Byte] = {
+  def download(url: String): DownloadResult = {
     val httpClient = HttpClientBuilder.create().build()
 
     val httpGet = new HttpGet(url)
     val response = httpClient.execute(httpGet)
 
     val statusCode = response.getStatusLine().getStatusCode()
-    if (statusCode != 200) {
+    val bytes = if (statusCode != 200) {
       throw new DownloadFailedException("Could not retrieve bytes")
     } else {
       val baos = new java.io.ByteArrayOutputStream
@@ -24,5 +29,8 @@ class DownloadHelper {
       baos.close
       baos.toByteArray
     }
+    val contentType = Option(response.getEntity().getContentType().getValue())
+
+    DownloadResult(bytes, contentType)
   }
 }
