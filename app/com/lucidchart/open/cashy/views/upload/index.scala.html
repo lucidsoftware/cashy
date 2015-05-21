@@ -24,7 +24,22 @@
       @helper.form(action=cashyRoutes.UploadController.uploadToS3(), 'id -> "uploadForm", ('enctype -> "multipart/form-data")) {
         <fieldset>
           @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, 'id -> "bucket", '_label -> "Bucket", '_showConstraints -> false)
-          @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10, 'id -> "fileInput")
+          @defining(request.queryString.get("assetURL")) { url =>
+            <ul class="nav nav-tabs" role="tablist">
+              <li class="@if(!url.isDefined) {active}"><a href="#assetFromFile" role="tab" data-toggle="tab">From File</a></li>
+              <li class="@if(url.isDefined) {active}"><a href="#assetFromURL" role="tab" data-toggle="tab">From URL</a></li>
+            </ul>
+            <div class="tab-content">
+              <div class="tab-pane @if(!url.isDefined) {active}" id="assetFromFile">
+                @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10, 'id -> "fileInput")
+              </div>
+              <div class="tab-pane @if(url.isDefined) {active}" id="assetFromURL">
+                @helper.input(uploadForm("assetURL"), '_label -> null, 'id -> "assetURL") { (id, name, value, args) =>
+                  <input type="url" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" placeholder="Enter a URL" />
+                }
+              </div>
+            </div>
+          }
           <dl>
             <dt>Asset Prep</dt>
             <dd>
@@ -87,11 +102,11 @@
           </div>
         }
       }
-      @if(uploadError.isDefined) {
-        <div class="error">
-        @uploadError.get
-        </div>
-      }
+      <dl class="error" id="otherErrors">
+        @if(uploadError.isDefined) {
+          <dd class="error">@uploadError.get</dd>
+        }
+      </dl>
 
     </div>
   </div>
@@ -214,9 +229,6 @@
   #imageUploadInfo label {
     font-weight: normal;
   }
-  #imageUploadInfo dd.info {
-    display: none;
-  }
   #resizedImage, #originalImage {
     max-width: 250px;
     display: inline-block;
@@ -238,10 +250,21 @@
 
 <script>
 
-  $('#fileInput').change(function(e) {
+  // Whenever the fileInput or assetURL change, try to do some preprocessing
+  function preProcessAsset(e) {
+    var me = this;
+
     var assetFullName = $('#fileName').val();
+    var uploadFileName;
+    if($('#assetFromFile').hasClass('active')) {
+      // If it is from file, get the filename from that field
+      uploadFileName = $(me).val().split(/(\\|\/)/g).pop();
+    } else {
+      // Assume it is from URL
+      uploadFileName = $('#assetURL').val().split(/(\\|\/)/g).pop();
+    }
+
     var assetFileName = assetFullName.split(/(\\|\/)/g).pop();
-    var uploadFileName = $(this).val().split(/(\\|\/)/g).pop();
 
     if (assetFileName.length == 0) {
       $('#fileName').val(assetFullName + uploadFileName);
@@ -251,7 +274,6 @@
     assetFullName = $('#fileName').val();
     var extension = assetFullName.split(/\./g).pop();
     var noExtensionName = assetFullName.substr(0, assetFullName.length - extension.length - 1);
-
 
     // Show js additional info
     if (@uploadFeatures.compressJsEnabled && [@Html(extensions(ExtensionType.js).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
@@ -267,6 +289,9 @@
       $('#cssUploadInfo').hide();
     }
 
+    // Remove all image errors
+    $(".image-error").remove();
+
     // Show image additional info
     @if(uploadFeatures.krakenEnabled) {
       if ([@Html(extensions(ExtensionType.image).map("\"" + _.toLowerCase + "\"").mkString(","))].indexOf(extension.toLowerCase()) >= 0) {
@@ -276,16 +301,31 @@
         var canUpload = true;
 
         // Figure out the image size
-        var file, img;
-        if ((file = this.files[0])) {
-          img = new Image();
-          img.onload = function() {
-            $('#imageWidth').val(this.width);
-            $('#imageHeight').val(this.height);
-            checkRetina();
-            checkSize();
+        var file, img, imgSrc, assetURL;
+
+        img = new Image();
+        img.onload = function() {
+          $('#imageWidth').val(this.width);
+          $('#imageHeight').val(this.height);
+          checkRetina();
+          checkSize();
+        }
+
+        if($('#assetFromFile').hasClass('active')) {
+          // If it is from file, load the image from object URL
+          if ((file = me.files[0])) {
+            img.src = URL.createObjectURL(file);
           }
-          img.src = URL.createObjectURL(file);
+        } else {
+          // Assume it is from URL
+          img.onerror = function(e) {
+            var dl = $(me).closest('dl');
+            dl.addClass('error');
+            dl.append('<dd class="error image-error">Could not load image</dd>');
+          }
+
+          assetURL = $('#assetURL').val();
+          img.src = assetURL;
         }
 
         // Check if the retina option is available
@@ -315,7 +355,7 @@
         }
 
         // Listen for changes in width
-        $('#imageWidth').on('input', function() {
+        $('#imageWidth').off('input').on('input', function() {
           var width = $(this).val();
 
           if($('#aspectRatio').is(':checked')) {
@@ -329,7 +369,7 @@
         });
 
         // Listen for changes on height
-        $('#imageHeight').on('input', function() {
+        $('#imageHeight').off('input').on('input', function() {
           var height = $(this).val();
 
           if($('#aspectRatio').is(':checked')) {
@@ -343,7 +383,7 @@
         });
 
         // Show/hide the retina name based on the retina checkbox
-        $('#uploadRetina').change(function() {
+        $('#uploadRetina').off('change').on('change', function() {
           $('#retinaNameContainer').toggle($(this).is(':checked'));
         });
 
@@ -355,12 +395,12 @@
         }
 
         // Switch the upload buttons when the resize image box is un/checked
-        $('#resizeImage').change(function() {
+        $('#resizeImage').off('change').on('change', function() {
           setCanUpload(!$(this).is(':checked'));
         });
 
         // Update the retina name from filename
-        $('#fileName').on('input', function() {
+        $('#fileName').off('input').on('input', function() {
           var assetFullName = $(this).val();
           var extension = assetFullName.split(/\./g).pop();
           var noExtensionName = assetFullName.substr(0, assetFullName.length - extension.length - 1);
@@ -369,13 +409,19 @@
         });
 
         // Handle preview button for resized images
-        $('#previewImageButton').click(function(e) {
+        $('#previewImageButton').off('click').on('click', function(e) {
           e.preventDefault();
           $('#previewImageButton').attr('disabled', 'true');
 
+
           // Send the file and size information with ajax
           var data = new FormData();
-          data.append('assetFile', file);
+          if($('#assetFromFile').hasClass('active')) {
+            data.append('assetFile', file);
+          } else {
+            data.append('assetURL', assetURL);
+          }
+
           data.append('bucket', $('#bucket').val());
           data.append('width', $('#imageWidth').val());
           data.append('height', $('#imageHeight').val());
@@ -410,13 +456,13 @@
 
         });
 
-        $('#cancelResizePreview').click(function() {
+        $('#cancelResizePreview').off('click').on('click', function() {
           $('#resizeImage').removeAttr('checked');
           $('#imagePreviewModal').modal('hide');
           setCanUpload(false);
         });
 
-        $('#confirmResizePreview').click(function() {
+        $('#confirmResizePreview').off('click').on('click', function() {
           $('#imagePreviewModal').modal('hide');
           setCanUpload(true);
         });
@@ -424,16 +470,18 @@
       } else {
         $('#imageUploadInfo').hide();
         $('#previewImageButton').hide();
+        $('#uploadButton').show();
       }
 
     }
 
-  });
+  }  // preProcessAsset
 
   $('#uploadButton').click(function(event) {
     $(this).button('loading');
     $('dd.error').remove();
     $('dl.error').removeClass('error');
+
     $.ajax({
       url: '@cashyRoutes.UploadController.validate',
       type: 'post',
@@ -443,6 +491,15 @@
       data: new FormData($('#uploadForm').get(0)),
       success: function(data) {
         if (data.success) {
+
+          // Clear out the data for the non active data source
+          // so that the server doesn't use the wrong one
+          if($('#assetFromFile').hasClass('active')) {
+            $('#assetURL').val(null);
+          } else {
+            $('#fileInput').wrap('<form>').parent('form').trigger('reset');
+            $('#fileInput').unwrap();
+          }
           $('#uploadForm').submit();
         }
         else {
@@ -450,7 +507,7 @@
             var error = data[key];
 
             if (key === 'all') {
-              var dl = $('[name="assetName"]').closest('dl');
+              var dl = $('#otherErrors');
             }
             else {
               var dl = $('[name="' + key + '"]').closest('dl');
@@ -473,6 +530,21 @@
     $('.upload-info').hide();
     $('#retinaNameContainer').hide();
     $('#previewImageButton').hide();
+
+    $('#fileInput').change(preProcessAsset);
+    $('#assetURL').change(preProcessAsset);
+    if ($('#assetURL').val()) {
+      $('#assetURL').change();
+    }
+
+    $(document).on('shown.bs.tab', 'a[href="#assetFromFile"]', function() {
+      $('#fileInput').change();
+    });
+
+    $(document).on('shown.bs.tab', 'a[href="#assetFromURL"]', function() {
+      $('#assetURL').change();
+    });
+
   })
 </script>
 }
