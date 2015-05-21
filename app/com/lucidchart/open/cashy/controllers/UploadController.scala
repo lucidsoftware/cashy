@@ -88,9 +88,7 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
   def uploadToS3 = AuthAction.authenticatedUser { implicit user =>
     Action(parse.multipartFormData(FileHandler.handleFilePartAsByteArray)) { implicit request =>
 
-      val formWithData = uploadForm.bindFromRequest()
-
-      formWithData.fold(
+      uploadForm.bindFromRequest().fold(
         formWithErrors => {
           Ok(views.html.upload.index(formWithErrors))
         },
@@ -98,25 +96,23 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
           try {
             // Get the asset data
             val assetData = AssetDataHelper.getData(request.body.file("assetFile"), data.assetURL)
-            val bytes = assetData.bytes
-            val contentType = assetData.contentType
 
             val uploadResult = getExtensionType(data.assetName) match {
               case ExtensionType.js => {
-                JsUploader.upload(bytes, contentType, user, data)
+                JsUploader.upload(assetData.bytes, assetData.contentType, user, data)
               }
               case ExtensionType.css => {
-                CssUploader.upload(bytes, contentType, user, data)
+                CssUploader.upload(assetData.bytes, assetData.contentType, user, data)
               }
               case ExtensionType.image => {
                 if (uploadFeatures.krakenEnabled) {
-                  KrakenImageUploader.upload(bytes, contentType, user, data)
+                  KrakenImageUploader.upload(assetData.bytes, assetData.contentType, user, data)
                 } else {
-                  DefaultUploader.upload(bytes, contentType, user, data)
+                  DefaultUploader.upload(assetData.bytes, assetData.contentType, user, data)
                 }
               }
               case ExtensionType.valid => {
-                DefaultUploader.upload(bytes, contentType, user, data)
+                DefaultUploader.upload(assetData.bytes, assetData.contentType, user, data)
               }
               case _ => {
                 throw new UploadFailedException("Asset type not supported")
@@ -139,9 +135,8 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
   def krakenPreview = AuthAction.authenticatedUser { implicit user =>
     Action(parse.multipartFormData(FileHandler.handleFilePartAsByteArray)) { implicit request =>
 
-      val formWithData = krakenForm.bindFromRequest()
       try {
-        formWithData.fold(
+        krakenForm.bindFromRequest().fold(
           formWithErrors => {
             throw new UploadFailedException(formWithErrors.errors.map(e => e.key + ": " + e.message)mkString("\n"))
           },
@@ -150,27 +145,20 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
             // Get the asset data
             val assetData = AssetDataHelper.getData(request.body.file("assetFile"), data.assetURL)
 
-            val bytes = assetData.bytes
-            val contentType = assetData.contentType
-            val filename = assetData.filename
-            val bucket = data.bucket
-            val width = data.width
-            val height = data.height
-
-            val extension = getExtension(filename)
+            val extension = getExtension(assetData.filename)
 
             // Generate a name for the temp file
             val tempName = java.util.UUID.randomUUID.toString + "." + extension
 
             // Upload the original file to the temp location
-            val tempUrl = S3Client.uploadTempFile(bucket, tempName, bytes, contentType)
+            val tempUrl = S3Client.uploadTempFile(data.bucket, tempName, assetData.bytes, assetData.contentType)
 
             // Send the resize request to Kraken
-            val krakenBytes = KrakenClient.resizeImage(tempUrl, width, height)
+            val krakenBytes = KrakenClient.resizeImage(tempUrl, data.width, data.height)
 
             // Upload the resized image
             val resizeName = java.util.UUID.randomUUID.toString + "." + extension
-            val resizedUrl = S3Client.uploadTempFile(bucket, resizeName, krakenBytes, contentType)
+            val resizedUrl = S3Client.uploadTempFile(data.bucket, resizeName, krakenBytes, assetData.contentType)
 
             // Return with url to the resized asset
             val json = Json.stringify(Json.toJson(Map("resizedUrl" -> resizedUrl)))

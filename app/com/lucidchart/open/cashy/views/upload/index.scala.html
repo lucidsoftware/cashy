@@ -261,7 +261,7 @@
       uploadFileName = $(me).val().split(/(\\|\/)/g).pop();
     } else {
       // Assume it is from URL
-      uploadFileName = $('#assetURL').val().split(/(\\|\/)/g).pop();
+      uploadFileName = $('#assetURL').val().split(/(\\|\/)/g).pop().split(/\?/)[0];;
     }
 
     var assetFileName = assetFullName.split(/(\\|\/)/g).pop();

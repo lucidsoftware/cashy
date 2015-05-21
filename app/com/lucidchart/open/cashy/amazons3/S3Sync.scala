@@ -56,7 +56,7 @@ class S3Sync extends CloudfrontConfig {
   private def checkKrakenQuota() {
     val usageThreshold = configuration.getDouble("kraken.usageAlertThreshold").get
     val usage = KrakenClient.checkQuota()
-    if (usage.isDefined && usage.get > usageThreshold) {
+    if (usage.exists(_ > usageThreshold)) {
       // Send an email to alert
       val fromAddress = MailerAddress(fromEmail)
       val toAddress = MailerAddress(alertEmail)

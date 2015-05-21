@@ -21,16 +21,16 @@ class DownloadHelper {
     val response = httpClient.execute(httpGet)
 
     val statusCode = response.getStatusLine().getStatusCode()
-    val bytes = if (statusCode != 200) {
+
+    if (statusCode != 200) {
       throw new DownloadFailedException("Could not retrieve bytes")
     } else {
       val baos = new java.io.ByteArrayOutputStream
       response.getEntity().writeTo(baos)
       baos.close
-      baos.toByteArray
+      val bytes = baos.toByteArray
+      val contentType = Option(response.getEntity().getContentType().getValue())
+      DownloadResult(bytes, contentType)
     }
-    val contentType = Option(response.getEntity().getContentType().getValue())
-
-    DownloadResult(bytes, contentType)
   }
 }
