@@ -1,7 +1,7 @@
 package com.lucidchart.open.cashy.controllers
 
 import com.lucidchart.open.cashy.views
-import com.lucidchart.open.cashy.models.{BrowseItem, BrowseItemType, BrowseItemDetail, AssetModel, UserModel}
+import com.lucidchart.open.cashy.models.{BrowseItem, BrowseItemType, BrowseItemDetail, AssetModel, UserModel, FolderModel}
 import com.lucidchart.open.cashy.request.{AppFlash, AuthAction}
 import com.lucidchart.open.cashy.amazons3.S3Client
 import com.lucidchart.open.cashy.amazons3.ListObjectsResponse
@@ -33,19 +33,25 @@ class BrowseController extends AppController {
 
       val listResponse = S3Client.listObjects(bucket, browsePath, marker)
 
+      val folders = FolderModel.findByKeys(bucket, listResponse.folders).map(folder => (folder.key, folder)).toMap
+
       val folderItems = listResponse.folders.map(f =>
         BrowseItem(BrowseItemType.folder,
           f,
           getItemName(f, BrowseItemType.folder),
-          routes.BrowseController.index(bucket, f).url
+          routes.BrowseController.index(bucket, f).url,
+          folders.get(f).map(_.hidden).getOrElse(false)
         ))
 
+      val assets = AssetModel.findByKeys(bucket, listResponse.assets).map(asset => (asset.key, asset)).toMap
+
       val assetItems = listResponse.assets.map(a =>
-        BrowseItem(BrowseItemType.asset, 
+        BrowseItem(BrowseItemType.asset,
           a,
           getItemName(a, BrowseItemType.asset),
-          bucketCloudfrontMap(bucket) + a)
-        ).groupBy(a => a.name.stripSuffix(".gz")).map {
+          bucketCloudfrontMap(bucket) + a,
+          assets.get(a).map(_.hidden).getOrElse(false)
+        )).groupBy(a => a.name.stripSuffix(".gz")).map {
           case (name, items) => {
             if (items.size == 1) {
               items
@@ -99,7 +105,8 @@ class BrowseController extends AppController {
         email,
         cacheControl,
         eTag,
-        gzipped
+        gzipped,
+        cashyAsset.map(_.hidden).getOrElse(false)
       )
 
       Ok(Json.stringify(Json.toJson(item))).withHeaders("Content-Type" -> "application/json")
@@ -135,11 +142,52 @@ class BrowseController extends AppController {
         }
 
         S3Client.createFolder(bucket, folderKey)
+        FolderModel.createFolder(bucket, folderKey, false)
         Ok
       }
       catch {
         case e: Exception => {
           Logger.error("Exception when creating folder", e)
+          val json = Json.stringify(Json.toJson(Map("error" -> e.getMessage)))
+          Ok(json).withHeaders("Content-Type" -> "application/json")
+        }
+      }
+    }
+  }
+
+  /**
+   * Marks a hidden asset or folder as not hidden
+   */
+  def show(bucket: String, key: String) = updateHidden(bucket, key, false)
+
+  /**
+   * Marks a shown asset or folder as hidden
+   */
+  def hide(bucket: String, key: String) = updateHidden(bucket, key, true)
+
+  /**
+   * Updates the hidden value of an asset or folder
+   */
+  private def updateHidden(bucket: String, key: String, hidden: Boolean) = AuthAction.authenticatedUser { implicit user =>
+    Action { implicit request =>
+      try {
+        if (key.endsWith("/")) {
+          // It is a folder
+          FolderModel.findByKey(bucket, key) match {
+            case Some(folder) => FolderModel.updateHidden(folder.bucket, folder.key, hidden)
+            case None => FolderModel.createFolder(bucket, key, hidden)
+          }
+        } else {
+          AssetModel.findByKey(bucket, key) match {
+            case Some(asset) => AssetModel.updateHidden(asset.bucket, asset.key, hidden)
+            case None => throw new Exception("Asset does not exist")
+          }
+        }
+        Ok
+      }
+      catch {
+        case e: Exception => {
+          Logger.error("Exception when hiding item", e)
           val json = Json.stringify(Json.toJson(Map("error" -> e.getMessage)))
           Ok(json).withHeaders("Content-Type" -> "application/json")
         }

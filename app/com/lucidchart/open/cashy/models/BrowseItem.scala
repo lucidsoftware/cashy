@@ -20,7 +20,8 @@ case class BrowseItemDetail(
   creator: String,
   cacheControl: String,
   eTag: String,
-  gzipped: Boolean
+  gzipped: Boolean,
+  hidden: Boolean
 )
 object BrowseItemDetail {
   implicit val uploadDataWrites: Writes[BrowseItemDetail] = (
@@ -34,7 +35,9 @@ object BrowseItemDetail {
     (JsPath \ "creator").write[String] and
     (JsPath \ "cacheControl").write[String] and
     (JsPath \ "eTag").write[String] and
-    (JsPath \ "gzipped").write[Boolean])(unlift(BrowseItemDetail.unapply))
+    (JsPath \ "gzipped").write[Boolean] and
+    (JsPath \ "hidden").write[Boolean]
+  )(unlift(BrowseItemDetail.unapply))
 
 }
 
@@ -42,5 +45,6 @@ case class BrowseItem(
   itemType: BrowseItemType.Value,
   key: String,
   name: String,
-  link: String
+  link: String,
+  hidden: Boolean
 )

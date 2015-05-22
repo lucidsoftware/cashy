@@ -4,16 +4,17 @@ import com.lucidchart.open.cashy.config.CloudfrontConfig
 import com.lucidchart.open.relate.interp._
 import com.lucidchart.open.relate.SqlResult
 import java.util.Date
+import org.apache.commons.codec.digest.DigestUtils
 import play.api.db._
 import play.api.Play.{configuration, current}
 import scala.collection.mutable.MutableList
 
 case class Asset(
-  id: Long,
   bucket: String,
   key: String,
   userId: Long,
-  created: Date
+  created: Date,
+  hidden: Boolean
 ) extends CloudfrontConfig {
   /**
    * Return a link to this Asset in Cloudfront.
@@ -34,49 +35,57 @@ class AssetModel {
   private val searchMax = configuration.getInt("search.max").get
   private val assetParser = { row: SqlResult =>
     Asset(
-      row.long("id"),
       row.string("bucket"),
       row.string("key"),
       row.long("user_id"),
-      row.date("created")
+      row.date("created"),
+      row.bool("hidden")
     )
-  }
-
-  def findById(assetId: Long): Option[Asset] = {
-    DB.withConnection { implicit connection =>
-      sql"""SELECT `id`, `bucket`, `key`, `user_id`, `created`
-        FROM `assets`
-        WHERE `id` = $assetId""".asSingleOption(assetParser)
-    }
   }
 
   def findByKey(bucketName: String, key: String): Option[Asset] = {
     DB.withConnection { implicit connection =>
-      sql"""SELECT `id`, `bucket`, `key`, `user_id`, `created`
+      sql"""SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
-        WHERE `key` = $key AND `bucket` = $bucketName""".asSingleOption { row =>
-          Asset(row.long("id"), row.string("bucket"), row.string("key"), row.long("user_id"), row.date("created"))
+      WHERE `key_hash` = ${getHash(key)} AND `bucket_hash` = ${getHash(bucketName)}""".asSingleOption(assetParser)
+    }
+  }
+
+  def findByKeys(bucketName: String, keys: List[String]): List[Asset] = {
+    if (keys.isEmpty) {
+      Nil
+    } else {
+      val keyHashes = keys.map(getHash(_))
+      DB.withConnection { implicit connection =>
+        sql"""SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
+          FROM `assets`
+          WHERE `key_hash` IN ($keyHashes) AND `bucket_hash` = ${getHash(bucketName)}""".asList(assetParser)
       }
     }
   }
 
-  def createAsset(bucket: String, key: String, userId: Long): Long = {
-    val now = new Date()
-    createAsset(bucket, key, userId, now)
+  def createAsset(bucket: String, key: String, userId: Long) {
+    createAsset(bucket, key, userId, new Date())
   }
 
-  def createAsset(bucket: String, key: String, userId: Long, date: Date): Long = {
+  def createAsset(bucket: String, key: String, userId: Long, date: Date) {
     DB.withConnection { implicit connection =>
       sql"""INSERT INTO `assets`
-        (`bucket`, `key`, `user_id`, `created`)
-        VALUES ($bucket, $key, $userId, $date)""".executeInsertLong()
+        (`bucket`, `key`, `user_id`, `created`, `bucket_hash`, `key_hash`)
+        VALUES ($bucket, $key, $userId, $date, ${getHash(bucket)}, ${getHash(key)})""".execute()
     }
   }
 
-  def deleteAsset(id: Long) {
+  def updateHidden(bucket: String, key: String, hidden: Boolean) {
+    DB.withConnection { implicit connection =>
+      sql"""UPDATE `assets` SET `hidden` = $hidden WHERE `bucket_hash` = ${getHash(bucket)} AND `key_hash` = ${getHash(key)}""".executeUpdate()
+    }
+  }
+
+  def deleteAsset(bucket: String, key: String) {
     DB.withConnection { implicit connection =>
       sql"""DELETE FROM `assets`
-        WHERE `id` = $id""".execute()
+        WHERE `bucket_hash` = ${getHash(bucket)} AND `key_hash` = ${getHash(key)}""".execute()
     }
   }
 
@@ -85,7 +94,7 @@ class AssetModel {
    *
    * If % characters are included in the query, it is assumed that the user knows what they are
    * doing and the query is used as is. If % is not present in the query, they are appended on
-   * either side of the search term.
+   * either side of the search term.  By doing this we definitely do not use any index.
    *
    * @param query the query string to look for
    * @return a List of Assets that match the query. The maximum size of this list is configurable
@@ -97,7 +106,7 @@ class AssetModel {
 
     DB.withConnection { implicit connection =>
       sql"""
-        SELECT `id`, `bucket`, `key`, `user_id`, `created`
+        SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
         WHERE LOWER(`key`) LIKE $searchTerm
         LIMIT $searchMax
@@ -120,9 +129,9 @@ class AssetModel {
   def getChangedAssets(bucket: String, s3Keys: List[String]): Tuple2[List[String], List[Asset]] = {
     DB.withConnection { implicit connection =>
       val assets = sql"""
-        SELECT `id`, `bucket`, `key`, `user_id`, `created`
+        SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
-        WHERE `bucket` = $bucket
+        WHERE `bucket_hash` = ${getHash(bucket)}
         ORDER BY `key` ASC
       """.asIterator(assetParser)
 
@@ -146,12 +155,21 @@ class AssetModel {
         }
       }
 
-      // If there are stil things in the iterator they need to be added
+      // If there are still things in the iterator they need to be added
       while(s3Iter.hasNext) {
         assetsToAdd += s3Iter.next
       }
 
       (assetsToAdd.toList, assetsToDelete.toList)
     }
+  }
+
+  /**
+   * Converts a string into a long value representing the first 8 bytes of its md5
+   * @param data the data to get the md5 hash of
+   * @return the string with the first 8 bytes of md5
+   */
+  private def getHash(data: String): String = {
+    DigestUtils.md5Hex(data).take(8)
   }
 }
