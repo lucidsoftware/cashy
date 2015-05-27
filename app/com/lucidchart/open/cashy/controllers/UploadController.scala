@@ -11,12 +11,15 @@ import java.io.File
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Request, Action}
+import play.api.mvc.MultipartFormData.FilePart
 import play.api.Play.current
 import play.api.Play.configuration
 import play.api.data._
 import play.api.data.Forms._
 import scala.util.{Try, Success, Failure}
 import validation.Constraints
+
+case class AssetNotFoundException(message: String) extends Exception(message)
 
 object UploadController extends UploadController
 class UploadController extends AppController with ExtensionsConfig with UploadFeatureConfig {
@@ -95,7 +98,7 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
         data => {
           try {
             // Get the asset data
-            val assetData = AssetDataHelper.getData(request.body.file("assetFile"), data.assetURL)
+            val assetData = AssetDataHelper.getData(eitherAssetSource(request.body.file("assetFile"), data.assetURL))
 
             val uploadResult = getExtensionType(data.assetName) match {
               case ExtensionType.js => {
@@ -143,7 +146,7 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
           data => {
 
             // Get the asset data
-            val assetData = AssetDataHelper.getData(request.body.file("assetFile"), data.assetURL)
+            val assetData = AssetDataHelper.getData(eitherAssetSource(request.body.file("assetFile"), data.assetURL))
 
             val extension = getExtension(assetData.filename)
 
@@ -185,7 +188,7 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
         formWithErrors => formWithErrors.errors,
         data => {
           Try {
-            AssetDataHelper.getData(request.body.file("assetFile"), data.assetURL)
+            AssetDataHelper.getData(eitherAssetSource(request.body.file("assetFile"), data.assetURL))
           } match {
             case Success(_) => List.empty
             case Failure(e) => List(new FormError("", e.getMessage))
@@ -203,6 +206,10 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
       }
       Ok(json).withHeaders("Content-Type" -> "application/json")
     }
+  }
+
+  private def eitherAssetSource(fileOption: Option[FilePart[Array[Byte]]], urlOption: Option[String]): Either[FilePart[Array[Byte]], String] = {
+    fileOption.map(Left(_)) orElse urlOption.map(Right(_)) getOrElse(throw AssetNotFoundException(s"Could not parse file and/or could not download from $urlOption"))
   }
 
 }
