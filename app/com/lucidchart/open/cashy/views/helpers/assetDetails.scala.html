@@ -3,6 +3,8 @@
   triggerClass: String
 )
 
+@import com.lucidchart.open.cashy.controllers.{routes=>cashyRoutes}
+
 <!-- Modal -->
 <div class="modal fade" id="@bucketName-itemDetails" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -41,6 +43,9 @@
         </div>
         <div>
           <div class="item-detail-label">S3 Url</div><div class="item-detail-value"><a class="show-s3-url" href="" target="_blank">Click to show</a><a id="@bucketName-itemS3Url" href="" target="_blank"></a></div>
+        </div>
+        <div>
+          <div class="item-detail-label">Upload Again</div><div class="item-detail-value"><a id="@bucketName-itemUploadAnotherVersion" href="" target="_blank">Click to upload another version</a></div>
         </div><br />
       </div>
     </div>
@@ -67,6 +72,11 @@
         $('#@bucketName-itemContentLength').text(data.size);
         $('#@bucketName-itemCacheControl').text(data.cacheControl);
         $('#@bucketName-itemGzipped').text(data.gzipped);
+
+        var uploadUrl = "@cashyRoutes.UploadController.index(Some(bucketName))";
+        uploadUrl += "&path=" + data.key.substring(0,data.key.lastIndexOf("/")+1) + "&assetURL=" + data.cloudfrontUrl
+
+        $('#@bucketName-itemUploadAnotherVersion').attr('href', uploadUrl);
 
         $('#@bucketName-itemDetails').modal('show');
         $('#@bucketName-itemS3Url').hide();

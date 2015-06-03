@@ -23,7 +23,7 @@ class KrakenImageUploader extends Uploader {
       val resizeHeight = data.imageHeight.get
 
       // Get the bytes from the already resized image (when the user previewed it)
-      val resizedBytes = DownloadHelper.downloadBytes(data.resizedImage.get)
+      val resizedBytes = DownloadHelper.download(data.resizedImage.get).bytes
 
       // Upload it to S3
       val asset = uploadAndAudit(resizedBytes, bucket, assetName, contentType, user)

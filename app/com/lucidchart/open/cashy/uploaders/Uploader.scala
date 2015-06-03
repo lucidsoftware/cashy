@@ -25,7 +25,8 @@ case class UploadFormSubmission(
   uploadRetina: Boolean = false,
   assetRetinaName: Option[String] = None,
   imageWidth: Option[Int] = None,
-  imageHeight: Option[Int] = None
+  imageHeight: Option[Int] = None,
+  assetURL: Option[String] = None
 )
 
 trait Uploader extends ExtensionsConfig {

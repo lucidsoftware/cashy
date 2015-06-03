@@ -63,8 +63,9 @@ class S3Client {
     val metadata = new ObjectMetadata
     metadata.setContentLength(bytes.length)
     metadata.setCacheControl("public, no-transform, max-age=" + uploadCacheTime)
-    if (contentType.isDefined)
-      metadata.setContentType(contentType.get)
+    contentType.map { contentType =>
+      metadata.setContentType(contentType)
+    }
 
     if (gzipped) {
       metadata.setContentEncoding("gzip")
