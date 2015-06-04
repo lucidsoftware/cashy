@@ -27,7 +27,7 @@ object ApplicationBuild extends Build {
   val main = Project(appName, file(".")).enablePlugins(PlayScala).settings(
       javacOptions in Compile ++= Seq("-source", "1.6", "-target", "1.6"),
       libraryDependencies ++= appDependencies,
-      scalaVersion := "2.11.2",
+      scalaVersion := "2.11.6",
       scalacOptions ++= Seq("-feature", "-deprecation", "-Xfatal-warnings"),
       resolvers ++= List(
         "lucidchart release repository" at "http://repo.lucidchart.com:8081/artifactory/libs-release-local",
