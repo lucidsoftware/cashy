@@ -7,7 +7,9 @@ import play.api.Play.configuration
 import com.amazonaws.{AmazonClientException, AmazonServiceException}
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
-import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.auth.profile.ProfileCredentialsProvider
+import com.amazonaws.auth.InstanceProfileCredentialsProvider
+import com.amazonaws.auth.AWSCredentials
 import scala.collection.JavaConverters._
 
 case class ListObjectsResponse(
@@ -17,7 +19,7 @@ case class ListObjectsResponse(
 )
 
 object S3Client extends S3Client
-class S3Client {
+class S3Client extends AWSConfig {
   val logger = Logger(this.getClass)
 
   protected val uploadTimeout = configuration.getInt("amazon.s3.upload.timeout").get
@@ -28,7 +30,7 @@ class S3Client {
   protected val tempUploadPrefix = configuration.getString("amazon.s3.tempUploadPrefix").get
   protected val s3AccessUrl = configuration.getString("amazon.s3.fullAccessUrl").get
 
-  protected val awsCredentials = new BasicAWSCredentials(accessKey, secret)
+  protected val awsCredentials = getAWSCredentials()
   protected val s3Client = new AmazonS3Client(awsCredentials)
 
 
@@ -158,4 +160,15 @@ class S3Client {
     }
   }
 
+}
+
+trait AWSConfig {
+  protected def getAWSCredentials(): AWSCredentials = {
+    try {
+      (new InstanceProfileCredentialsProvider()).getCredentials()
+    } catch {
+      case e: Exception =>
+          (new ProfileCredentialsProvider("/etc/aws/dev-credentials", "default")).getCredentials()
+    }
+  }
 }
