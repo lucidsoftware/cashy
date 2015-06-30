@@ -24,8 +24,6 @@ class S3Client extends AWSConfig {
 
   protected val uploadTimeout = configuration.getInt("amazon.s3.upload.timeout").get
   protected val uploadCacheTime = configuration.getInt("amazon.s3.upload.cachetime").get
-  protected val accessKey = configuration.getString("amazon.s3.credentials.accesskey").get
-  protected val secret = configuration.getString("amazon.s3.credentials.secret").get
   protected val listingMaxKeys = configuration.getInt("amazon.s3.listing.maxKeys").get
   protected val tempUploadPrefix = configuration.getString("amazon.s3.tempUploadPrefix").get
   protected val s3AccessUrl = configuration.getString("amazon.s3.fullAccessUrl").get
