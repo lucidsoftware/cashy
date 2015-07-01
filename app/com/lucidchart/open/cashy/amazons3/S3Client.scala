@@ -9,7 +9,7 @@ import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model._
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.amazonaws.auth.InstanceProfileCredentialsProvider
-import com.amazonaws.auth.AWSCredentials
+import com.amazonaws.auth.AWSCredentialsProvider
 import scala.collection.JavaConverters._
 
 case class ListObjectsResponse(
@@ -28,8 +28,8 @@ class S3Client extends AWSConfig {
   protected val tempUploadPrefix = configuration.getString("amazon.s3.tempUploadPrefix").get
   protected val s3AccessUrl = configuration.getString("amazon.s3.fullAccessUrl").get
 
-  protected val awsCredentials = getAWSCredentials()
-  protected val s3Client = new AmazonS3Client(awsCredentials)
+  protected val awsCredentialsProvider = getAWSCredentialsProvider()
+  protected val s3Client = new AmazonS3Client(awsCredentialsProvider)
 
 
   def existsInS3(bucketName: String, objectName: String): Boolean = {
@@ -161,12 +161,12 @@ class S3Client extends AWSConfig {
 }
 
 trait AWSConfig {
-  protected def getAWSCredentials(): AWSCredentials = {
+  protected def getAWSCredentialsProvider(): AWSCredentialsProvider = {
     try {
-      (new InstanceProfileCredentialsProvider()).getCredentials()
+      new InstanceProfileCredentialsProvider()
     } catch {
       case e: Exception =>
-          (new ProfileCredentialsProvider("/etc/aws/dev-credentials", "default")).getCredentials()
+          new ProfileCredentialsProvider("/etc/aws/dev-credentials", "default")
     }
   }
 }
