@@ -2,7 +2,7 @@ package com.lucidchart.open.cashy.controllers
 
 import com.lucidchart.open.cashy.views
 import com.lucidchart.open.cashy.request.{AppFlash, AuthAction}
-import com.lucidchart.open.cashy.amazons3.S3Client
+import com.lucidchart.open.cashy.amazons3.{Validation, S3Client}
 import com.lucidchart.open.cashy.utils.{FileHandler, KrakenClient, AssetDataHelper}
 import com.lucidchart.open.cashy.config.{ExtensionsConfig, ExtensionType, UploadFeatureConfig}
 import com.lucidchart.open.cashy.uploaders._
@@ -28,14 +28,12 @@ class UploadController extends AppController with ExtensionsConfig with UploadFe
 
   val minNestedDirectories: Int = configuration.getInt("upload.minNestedDirectories").get
 
-  val filenameRegex = """[a-zA-Z0-9-_\./@]+""".r
-
   private val uploadForm = Form(
     mapping(
       "bucket" -> text.verifying("Invalid bucket", x => buckets.contains(x)),
       "assetName" -> text.verifying("Enter a name", x => !x.isEmpty)
               .verifying("Must not start with /", x => !x.startsWith("/"))
-              .verifying("Must not contain invalid characters", x => filenameRegex.unapplySeq(x).isDefined)
+              .verifying("Must not contain invalid characters", Validation.isSafeS3Key _)
               .verifying("Must not contain ./", x => !x.contains("./"))
               .verifying("Must be organized in at least " + minNestedDirectories + " directories", x => x.split("/").length >= minNestedDirectories + 1)
               .verifying("Must end in a valid extension (" + extensions(ExtensionType.valid).map("." + _).mkString(", ") + ")", x => getExtensionType(x) != ExtensionType.invalid),
