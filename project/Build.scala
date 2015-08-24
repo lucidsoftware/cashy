@@ -21,7 +21,7 @@ object ApplicationBuild extends Build {
     "org.apache.httpcomponents" % "httpclient" % "4.3.6",
     "org.apache.commons" % "commons-email" % "1.3.3",
     "com.yahoo.platform.yui" % "yuicompressor" % "2.4.8",
-    "com.amazonaws" % "aws-java-sdk" % "1.9.13"
+    "com.amazonaws" % "aws-java-sdk-s3" % "1.9.13"
   )
 
   val main = Project(appName, file(".")).enablePlugins(PlayScala).settings(
