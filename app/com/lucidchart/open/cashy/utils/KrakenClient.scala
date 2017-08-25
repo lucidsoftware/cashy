@@ -1,5 +1,6 @@
 package com.lucidchart.open.cashy.utils
 
+import org.apache.http.client.config.RequestConfig
 import play.api.Logger
 import play.api.Play.current
 import play.api.Play.configuration
@@ -77,28 +78,37 @@ class KrakenClient {
   def checkQuota(): Option[Double] = {
     val httpClient = HttpClientBuilder.create().build()
 
-    val httpPost = new HttpPost(usageUrl)
-    val body = new StringEntity(Json.stringify(authenticatedJson()))
-    body.setContentType("application/json")
-    httpPost.setEntity(body)
-    val response = httpClient.execute(httpPost)
+    try {
+      val httpPost = new HttpPost(usageUrl)
+      val body = new StringEntity(Json.stringify(authenticatedJson()))
+      body.setContentType("application/json")
+      httpPost.setEntity(body)
+      httpPost.setConfig(getRequestConfig)
+      val response = httpClient.execute(httpPost)
 
-    // Get the kraken response
-    if (response.getStatusLine().getStatusCode() != 200) {
-      None
-    } else {
-      val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
-      val responseJson = Json.parse(responseBody)
-      val success = (responseJson \ "success").asOpt[Boolean].getOrElse(false)
-      if (success) {
-        val used = (responseJson \ "quota_used").asOpt[Double]
-        val total = (responseJson \ "quota_total").asOpt[Double]
-        for (usedVal <- used; totalVal <- total) yield {
-          usedVal/totalVal
+      try {
+        // Get the kraken response
+        if (response.getStatusLine().getStatusCode() != 200) {
+          None
+        } else {
+          val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
+          val responseJson = Json.parse(responseBody)
+          val success = (responseJson \ "success").asOpt[Boolean].getOrElse(false)
+          if (success) {
+            val used = (responseJson \ "quota_used").asOpt[Double]
+            val total = (responseJson \ "quota_total").asOpt[Double]
+            for (usedVal <- used; totalVal <- total) yield {
+              usedVal/totalVal
+            }
+          } else {
+            None
+          }
         }
-      } else {
-        None
+      } finally {
+        response.close()
       }
+    } finally {
+      httpClient.close()
     }
   }
 
@@ -129,29 +139,48 @@ class KrakenClient {
   private def uploadToKraken(json: String): String = {
     val httpClient = HttpClientBuilder.create().build()
 
-    val httpPost = new HttpPost(uploadUrl)
-    val body = new StringEntity(json)
-    body.setContentType("application/json")
-    httpPost.setEntity(body)
-    val response = httpClient.execute(httpPost)
+    try {
+      val httpPost = new HttpPost(uploadUrl)
+      val body = new StringEntity(json)
+      body.setContentType("application/json")
+      httpPost.setEntity(body)
+      httpPost.setConfig(getRequestConfig)
+      val response = httpClient.execute(httpPost)
 
-    // Get the kraken response
-    if (response.getStatusLine().getStatusCode() != 200) {
-      val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
-      val responseJson = Json.parse(responseBody)
-      val message = (responseJson \ "message").asOpt[String].getOrElse("Unknown error")
-      throw new KrakenFailedException(response.getStatusLine().getStatusCode() + " [Kraken]: " + message)
-    } else {
-      val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
-      val responseJson = Json.parse(responseBody)
-      val success = (responseJson \ "success").asOpt[Boolean].getOrElse(false)
-      if (success) {
-        (responseJson \ "kraked_url").asOpt[String].get
-      } else {
-        val error = (responseJson \ "message").asOpt[String].getOrElse("Unknown error")
-        throw new KrakenFailedException(error)
+      try {
+        // Get the kraken response
+        if (response.getStatusLine().getStatusCode() != 200) {
+          val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
+          val responseJson = Json.parse(responseBody)
+          val message = (responseJson \ "message").asOpt[String].getOrElse("Unknown error")
+          throw new KrakenFailedException(response.getStatusLine().getStatusCode() + " [Kraken]: " + message)
+        } else {
+          val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
+          val responseJson = Json.parse(responseBody)
+          val success = (responseJson \ "success").asOpt[Boolean].getOrElse(false)
+          if (success) {
+            (responseJson \ "kraked_url").asOpt[String].get
+          } else {
+            val error = (responseJson \ "message").asOpt[String].getOrElse("Unknown error")
+            throw new KrakenFailedException(error)
+          }
+        }
+      } finally {
+        response.close()
       }
+    } finally {
+      httpClient.close()
     }
+  }
+
+  private def getRequestConfig = {
+    val timeout = configuration.getInt("kraken.connectionTimeout").get
+    val CONNECTION_TIMEOUT_MS = timeout * 1000;
+    RequestConfig.custom()
+      .setConnectionRequestTimeout(CONNECTION_TIMEOUT_MS)
+      .setConnectTimeout(CONNECTION_TIMEOUT_MS)
+      .setSocketTimeout(CONNECTION_TIMEOUT_MS)
+      .build()
   }
 
 }
