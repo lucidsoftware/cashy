@@ -23,9 +23,9 @@ class KrakenClient {
   protected val apiSecret = configuration.getString("kraken.apiSecret").get
   protected val uploadUrl = configuration.getString("kraken.imageUploadUrl").get
   protected val usageUrl = configuration.getString("kraken.usageUrl").get
-  protected val connectionRequestTimeout = configuration.getInt("kraken.connectionRequestTimeout").get
-  protected val connectTimeout = configuration.getInt("kraken.connectTimeout").get
-  protected val socketTimeout = configuration.getInt("kraken.socketTimeout").get
+  protected val connectionRequestTimeout = configuration.getInt("kraken.connectionRequestTimeoutMs").get
+  protected val connectTimeout = configuration.getInt("kraken.connectTimeoutMs").get
+  protected val socketTimeout = configuration.getInt("kraken.socketTimeoutMs").get
 
   /**
    * @param sourceUrl the string url of the image that will be resized
