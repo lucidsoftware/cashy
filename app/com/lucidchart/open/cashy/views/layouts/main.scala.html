@@ -10,7 +10,8 @@
   content: Html
 )(
   implicit request: RequestHeader,
-  buckets: Set[String]
+  buckets: Set[String],
+  messages: play.api.i18n.Messages
 )
 
 <!DOCTYPE HTML>
@@ -49,7 +50,7 @@
       document.createElement('footer');
     </script>
     <![endif]-->
-    
+
   </head>
   <body>
     <nav class="navbar navbar-inverse navbar-fixed-top">

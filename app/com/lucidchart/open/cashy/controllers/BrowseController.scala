@@ -6,17 +6,18 @@ import com.lucidchart.open.cashy.request.{AppFlash, AuthAction}
 import com.lucidchart.open.cashy.amazons3.S3Client
 import com.lucidchart.open.cashy.amazons3.ListObjectsResponse
 
+import javax.inject.Inject
 import play.api.Logger
 import play.api.mvc.{Request, Action}
 import play.api.libs.json.Json
+import play.api.i18n.MessagesApi
 import play.api.Play.current
 import play.api.Play.configuration
 import org.apache.http.client.methods.HttpHead
 import org.apache.http.impl.client.HttpClientBuilder
 import scala.io.Source
 
-object BrowseController extends BrowseController
-class BrowseController extends AppController {
+class BrowseController @Inject() (val messagesApi: MessagesApi) extends AppController with play.api.i18n.I18nSupport {
 
   val logger = Logger(this.getClass)
 

@@ -1,7 +1,8 @@
 package com.lucidchart.open.cashy.models
 
+import javax.inject.Inject
 import play.api.Play.current
-import play.api.db._
+import play.api.db.Database
 import com.lucidchart.open.relate.interp._
 import com.lucidchart.open.relate.SqlResult
 
@@ -11,8 +12,8 @@ case class User(
   email: String
 )
 
-object UserModel extends UserModel
-class UserModel {
+object UserModel extends UserModel(play.api.Play.current.injector.instanceOf[Database])
+class UserModel @Inject() (db: Database) {
 
   private val userParser = { row: SqlResult =>
     User(
@@ -23,7 +24,7 @@ class UserModel {
   }
 
   def findById(userId: Long): Option[User] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""SELECT `id`, `google_id`, `email`
         FROM `users`
         WHERE `id` = $userId""".asSingleOption(userParser)
@@ -31,7 +32,7 @@ class UserModel {
   }
 
   def findByIds(userIds: List[Long]): List[User] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""SELECT `id`, `google_id`, `email`
         FROM `users`
         WHERE `id` IN ($userIds)""".asList(userParser)
@@ -40,7 +41,7 @@ class UserModel {
 
 
   def findByGoogleId(googleId: String): Option[User] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""SELECT `id`, `google_id`, `email`
         FROM `users`
         WHERE `google_id` = $googleId""".asSingleOption(userParser)
@@ -48,7 +49,7 @@ class UserModel {
   }
 
   def createUser(googleId: String, email: String): User = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""INSERT INTO `users`
         (`google_id`, `email`)
         VALUES ($googleId, $email)""".execute()

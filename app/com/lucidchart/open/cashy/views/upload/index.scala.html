@@ -14,7 +14,8 @@
   buckets: Set[String],
   extensions: Map[ExtensionType.Value,Set[String]],
   user: User,
-  uploadFeatures: UploadFeatures
+  uploadFeatures: UploadFeatures,
+  messages: play.api.i18n.Messages
 )
 
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
@@ -74,7 +75,7 @@
                     <input type="text" name="@name" id="@id" @toHtmlArgs(args) value="@value" />
                   }px x@helper.input(uploadForm("imageHeight"), '_label -> null, 'id -> "imageHeight", 'size -> 3, '_class -> "inline-input") { (id, name, value, args) =>
                     <input type="text" name="@name" id="@id" @toHtmlArgs(args) value="@value" />
-                  }px 
+                  }px
                   <input type="checkbox" id="aspectRatio" class="inline-input" checked="checked" name="aspectRatio"/> <label for="aspectRatio">Keep Aspect Ratio</label>
                   <div class="resize-error">Resizing to a larger size will distort the image</div>
                   <div><input type="checkbox" id="uploadRetina" name="uploadRetina" disabled="true" value="true" /> <label for="uploadRetina">Upload Retina Version </label> <span class="retina-error">(Source not large enough)</span></div>

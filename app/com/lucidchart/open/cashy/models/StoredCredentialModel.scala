@@ -1,10 +1,10 @@
 package com.lucidchart.open.cashy.models
 
+import javax.inject.Inject
 import com.lucidchart.open.relate.interp._
 import com.lucidchart.open.cashy.utils.Serializer
 
-import play.api.Play.current
-import play.api.db._
+import play.api.db.Database
 import com.google.api.client.auth.oauth2.StoredCredential
 
 
@@ -13,11 +13,11 @@ case class StoredCredentialRecord(
   value: Array[Byte]
 )
 
-object StoredCredentialModel extends StoredCredentialModel
-class StoredCredentialModel {
+object StoredCredentialModel extends StoredCredentialModel(play.api.Play.current.injector.instanceOf[Database])
+class StoredCredentialModel @Inject() (db: Database) {
 
   def clearCredentials() {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""TRUNCATE TABLE `stored_credentials`""".execute()
     }
   }
@@ -25,7 +25,7 @@ class StoredCredentialModel {
   def containsValue(value: StoredCredential): Boolean = {
     val serializedValue = serializeCredential(value)
 
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       val count = sql"""SELECT COUNT(*)
         FROM `stored_credentials`
         WHERE `value` = $serializedValue""".asSingle { row =>
@@ -36,14 +36,14 @@ class StoredCredentialModel {
   }
 
   def deleteKey(key: String) {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""DELETE FROM `stored_credentials`
         WHERE `key` = $key""".execute()
     }
   }
 
   def getByKey(key: String): Option[StoredCredential] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       val recordOption = sql"""SELECT `key`, `value`
         FROM `stored_credentials`
         WHERE `key` = $key""".asSingleOption { row =>
@@ -54,7 +54,7 @@ class StoredCredentialModel {
   }
 
   def getAllKeys(): Set[String] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""SELECT `key`
         FROM `stored_credentials`""".asSet { row =>
           row.string("key")
@@ -63,7 +63,7 @@ class StoredCredentialModel {
   }
 
   def getAllValues(): Set[StoredCredential] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       val byteSet = sql"""SELECT `value`
         FROM `stored_credentials`""".asSet { row =>
           row.byteArray("value")
@@ -75,7 +75,7 @@ class StoredCredentialModel {
   def setCredential(key: String, value: StoredCredential) = {
     val serializedValue = serializeCredential(value)
 
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""INSERT INTO `stored_credentials`
         VALUES($key, $serializedValue)
         ON DUPLICATE KEY UPDATE `value`=$serializedValue
@@ -84,7 +84,7 @@ class StoredCredentialModel {
   }
 
   def getSize(): Int = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""SELECT COUNT(*)
         FROM `stored_credentials`""".asSingle { row =>
           row.int("COUNT(*)")

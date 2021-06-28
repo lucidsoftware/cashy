@@ -4,8 +4,9 @@ import com.lucidchart.open.cashy.config.CloudfrontConfig
 import com.lucidchart.open.relate.interp._
 import com.lucidchart.open.relate.SqlResult
 import java.util.Date
+import javax.inject.Inject
 import org.apache.commons.codec.digest.DigestUtils
-import play.api.db._
+import play.api.db.Database
 import play.api.Play.{configuration, current}
 import scala.collection.mutable.MutableList
 
@@ -30,8 +31,8 @@ case class Asset(
   }
 }
 
-object AssetModel extends AssetModel
-class AssetModel {
+object AssetModel extends AssetModel(play.api.Play.current.injector.instanceOf[Database])
+class AssetModel @Inject() (db: Database) {
   private val searchMax = configuration.getInt("search.max").get
   private val assetParser = { row: SqlResult =>
     Asset(
@@ -44,7 +45,7 @@ class AssetModel {
   }
 
   def findByKey(bucketName: String, key: String): Option[Asset] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
       WHERE `key_hash` = ${getHash(key)} AND `bucket_hash` = ${getHash(bucketName)}""".asSingleOption(assetParser)
@@ -56,7 +57,7 @@ class AssetModel {
       Nil
     } else {
       val keyHashes = keys.map(getHash(_))
-      DB.withConnection { implicit connection =>
+      db.withConnection { implicit connection =>
         sql"""SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
           FROM `assets`
           WHERE `key_hash` IN ($keyHashes) AND `bucket_hash` = ${getHash(bucketName)}""".asList(assetParser)
@@ -69,7 +70,7 @@ class AssetModel {
   }
 
   def createAsset(bucket: String, key: String, userId: Long, date: Date) {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""INSERT INTO `assets`
         (`bucket`, `key`, `user_id`, `created`, `bucket_hash`, `key_hash`)
         VALUES ($bucket, $key, $userId, $date, ${getHash(bucket)}, ${getHash(key)})""".execute()
@@ -77,13 +78,13 @@ class AssetModel {
   }
 
   def updateHidden(bucket: String, key: String, hidden: Boolean) {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""UPDATE `assets` SET `hidden` = $hidden WHERE `bucket_hash` = ${getHash(bucket)} AND `key_hash` = ${getHash(key)}""".executeUpdate()
     }
   }
 
   def deleteAsset(bucket: String, key: String) {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""DELETE FROM `assets`
         WHERE `bucket_hash` = ${getHash(bucket)} AND `key_hash` = ${getHash(key)}""".execute()
     }
@@ -104,7 +105,7 @@ class AssetModel {
     val query = rawQuery.replace("_", """\_""")
     val searchTerm = if (query.contains("%")) query.toLowerCase else "%" + query.toLowerCase + "%"
 
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""
         SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
@@ -127,7 +128,7 @@ class AssetModel {
    *         and a list of assets that need to be deleted from cashy
    */
   def getChangedAssets(bucket: String, s3Keys: List[String]): Tuple2[List[String], List[Asset]] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       val assets = sql"""
         SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
