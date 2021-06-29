@@ -5,7 +5,8 @@
   implicit
   request: play.api.mvc.Request[_],
   buckets: Set[String],
-  userOption: Option[User]
+  userOption: Option[User],
+  messages: play.api.i18n.Messages
 )
 
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=userOption) {

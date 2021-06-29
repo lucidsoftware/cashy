@@ -5,7 +5,8 @@
 @(auditPage: AuditPage)(
   implicit request: play.api.mvc.Request[_],
   user: User,
-  buckets: Set[String]
+  buckets: Set[String],
+  messages: play.api.i18n.Messages
 )
 
 @views.html.layouts.main(

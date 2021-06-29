@@ -2,9 +2,7 @@ package com.lucidchart.open.cashy.utils
 
 // COde modified from http://stackoverflow.com/questions/15036121/pulling-files-from-multipartformdata-in-memory-in-play2-scala
 
-import play.api.mvc.BodyParsers.parse.Multipart.PartHandler
-import play.api.mvc.BodyParsers.parse.Multipart.handleFilePart
-import play.api.mvc.BodyParsers.parse.Multipart.FileInfo
+import play.core.parsers.Multipart.{handleFilePart, PartHandler, FileInfo}
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.libs.iteratee.Iteratee
 import java.io.ByteArrayOutputStream

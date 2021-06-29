@@ -1,9 +1,10 @@
 package com.lucidchart.open.cashy.models
 
+import javax.inject.Inject
 import com.lucidchart.open.relate.SqlResult
 import com.lucidchart.open.relate.interp._
 import java.util.Date
-import play.api.db._
+import play.api.db.Database
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.Play.{configuration, current}
@@ -54,8 +55,8 @@ case class AuditWithUser(
   created: Date
 )
 
-object AuditModel extends AuditModel
-class AuditModel {
+object AuditModel extends AuditModel(play.api.Play.current.injector.instanceOf[Database])
+class AuditModel @Inject() (db: Database) {
   private val pageSize = configuration.getInt("audit.max").get
   private val auditParser = { row: SqlResult =>
     AuditEntry(
@@ -68,7 +69,7 @@ class AuditModel {
   }
 
   private def findById(auditId: Long): Option[AuditEntry] = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       sql"""SELECT `id`, `user_id`, `data`, `type`, `created`
         FROM `audits`
         WHERE `id` = $auditId""".asSingleOption { row =>
@@ -79,7 +80,7 @@ class AuditModel {
 
   private def createAuditEntry(userId: Long, data: String, assetType: AuditType.Value) {
     val now = new Date()
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
       val auditId = sql"""INSERT INTO `audits`
         (`user_id`, `data`, `type`, `created`)
         VALUES ($userId, $data, ${assetType.id}, $now)""".executeInsertLong()
@@ -103,7 +104,7 @@ class AuditModel {
    * @return a page of AuditWithUser
    */
   def getAuditPage(page: Int) = {
-    DB.withConnection { implicit connection =>
+    db.withConnection { implicit connection =>
 
       val audits = sql"""
         SELECT `id`, `user_id`, `data`, `type`, `created`

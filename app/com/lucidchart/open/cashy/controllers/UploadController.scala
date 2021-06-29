@@ -8,6 +8,7 @@ import com.lucidchart.open.cashy.config.{ExtensionsConfig, ExtensionType, Upload
 import com.lucidchart.open.cashy.uploaders._
 
 import java.io.File
+import javax.inject.Inject
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc.{Request, Action}
@@ -16,13 +17,13 @@ import play.api.Play.current
 import play.api.Play.configuration
 import play.api.data._
 import play.api.data.Forms._
+import play.api.i18n.MessagesApi
 import scala.util.{Try, Success, Failure}
 import validation.Constraints
 
 case class AssetNotFoundException(message: String) extends Exception(message)
 
-object UploadController extends UploadController
-class UploadController extends AppController with ExtensionsConfig with UploadFeatureConfig {
+class UploadController @Inject() (val messagesApi: MessagesApi) extends AppController with ExtensionsConfig with UploadFeatureConfig with play.api.i18n.I18nSupport {
 
   val logger = Logger(this.getClass)
 

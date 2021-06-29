@@ -1,23 +1,20 @@
 package com.lucidchart.open.cashy.controllers
 
+import javax.inject.Inject
 import com.lucidchart.open.cashy.request.AuthAction
 import com.lucidchart.open.cashy.models.{AssetModel, Asset, FolderModel, Folder}
 import com.lucidchart.open.cashy.views
 import play.api.data._
 import play.api.data.Forms._
 import play.api.mvc.Action
+import play.api.i18n.MessagesApi
 
 case class SearchParams(
   q: String
 )
 
-object SearchController extends SearchController
-class SearchController extends AppController {
-  val searchForm = Form(
-    mapping(
-      "q" -> text.verifying("Enter a search term", x => x != "")
-    )(SearchParams.apply)(SearchParams.unapply)
-  )
+class SearchController @Inject() (val messagesApi: MessagesApi) extends AppController with play.api.i18n.I18nSupport {
+  import SearchController._
 
   def search = AuthAction.authenticatedUser { implicit user =>
     Action { implicit request =>
@@ -58,4 +55,13 @@ class SearchController extends AppController {
       folders.take(idx+1).mkString("/")+"/"
     }.toList
   }
+}
+
+object SearchController {
+  val searchForm = Form(
+    mapping(
+      "q" -> text.verifying("Enter a search term", x => x != "")
+    )(SearchParams.apply)(SearchParams.unapply)
+  )
+
 }

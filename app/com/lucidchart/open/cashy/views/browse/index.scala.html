@@ -15,7 +15,8 @@
   implicit
   request: play.api.mvc.Request[_],
   buckets: Set[String],
-  user: User
+  user: User,
+  messages: play.api.i18n.Messages
 )
 
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
@@ -260,4 +261,4 @@
     }
   </style>
 
-}(request, buckets)
+}(request, buckets, messages)
