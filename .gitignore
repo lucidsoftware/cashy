@@ -17,4 +17,6 @@ dist
 /*.sublime-*
 /conf/app_compilation_date.txt
 /conf/app_version.txt
+*.deb
+/.bsp/
 
