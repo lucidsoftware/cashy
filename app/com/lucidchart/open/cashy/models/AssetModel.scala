@@ -1,43 +1,35 @@
 package com.lucidchart.open.cashy.models
 
-import com.lucidchart.open.cashy.config.CloudfrontConfig
-import com.lucidchart.open.relate.interp._
-import com.lucidchart.open.relate.SqlResult
+import com.lucidchart.open.cashy.config.Buckets
+import com.lucidchart.relate._
 import java.util.Date
 import javax.inject.Inject
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.db.Database
-import play.api.Play.{configuration, current}
-import scala.collection.mutable.MutableList
+import play.api.Configuration
 
 case class Asset(
-  bucket: String,
-  key: String,
-  userId: Long,
-  created: Date,
-  hidden: Boolean
-) extends CloudfrontConfig {
-  /**
-   * Return a link to this Asset in Cloudfront.
-   *
-   * @return the link to the Asset
-   */
-  def link: String = {
-    bucketCloudfrontMap(bucket) + key
-  }
-
+    link: String,
+    bucket: String,
+    key: String,
+    userId: Long,
+    created: Date,
+    hidden: Boolean
+) {
   def parent: String = {
-    key.substring(0, key.lastIndexOf("/")+1)
+    key.substring(0, key.lastIndexOf("/") + 1)
   }
 }
 
-object AssetModel extends AssetModel(play.api.Play.current.injector.instanceOf[Database])
-class AssetModel @Inject() (db: Database) {
-  private val searchMax = configuration.getInt("search.max").get
-  private val assetParser = { row: SqlResult =>
+class AssetModel @Inject() (buckets: Buckets, configuration: Configuration, db: Database) {
+  private val searchMax = configuration.get[Int]("search.max")
+  private val assetParser = { row: SqlRow =>
+    val bucket = row.string("bucket")
+    val key = row.string("key")
     Asset(
-      row.string("bucket"),
-      row.string("key"),
+      buckets.cloudfrontUrl(bucket) + key,
+      bucket,
+      key,
       row.long("user_id"),
       row.date("created"),
       row.bool("hidden")
@@ -48,7 +40,8 @@ class AssetModel @Inject() (db: Database) {
     db.withConnection { implicit connection =>
       sql"""SELECT `bucket`, `key`, `user_id`, `created`, `hidden`
         FROM `assets`
-      WHERE `key_hash` = ${getHash(key)} AND `bucket_hash` = ${getHash(bucketName)}""".asSingleOption(assetParser)
+      WHERE `key_hash` = ${getHash(key)} AND `bucket_hash` = ${getHash(bucketName)}"""
+        .asSingleOption(assetParser)
     }
   }
 
@@ -65,11 +58,11 @@ class AssetModel @Inject() (db: Database) {
     }
   }
 
-  def createAsset(bucket: String, key: String, userId: Long) {
+  def createAsset(bucket: String, key: String, userId: Long): Unit = {
     createAsset(bucket, key, userId, new Date())
   }
 
-  def createAsset(bucket: String, key: String, userId: Long, date: Date) {
+  def createAsset(bucket: String, key: String, userId: Long, date: Date): Unit = {
     db.withConnection { implicit connection =>
       sql"""INSERT INTO `assets`
         (`bucket`, `key`, `user_id`, `created`, `bucket_hash`, `key_hash`)
@@ -77,13 +70,17 @@ class AssetModel @Inject() (db: Database) {
     }
   }
 
-  def updateHidden(bucket: String, key: String, hidden: Boolean) {
+  def updateHidden(bucket: String, key: String, hidden: Boolean): Unit = {
     db.withConnection { implicit connection =>
-      sql"""UPDATE `assets` SET `hidden` = $hidden WHERE `bucket_hash` = ${getHash(bucket)} AND `key_hash` = ${getHash(key)}""".executeUpdate()
+      sql"""UPDATE `assets` SET `hidden` = $hidden WHERE `bucket_hash` = ${getHash(
+        bucket
+      )} AND `key_hash` = ${getHash(
+        key
+      )}""".executeUpdate()
     }
   }
 
-  def deleteAsset(bucket: String, key: String) {
+  def deleteAsset(bucket: String, key: String): Unit = {
     db.withConnection { implicit connection =>
       sql"""DELETE FROM `assets`
         WHERE `bucket_hash` = ${getHash(bucket)} AND `key_hash` = ${getHash(key)}""".execute()
@@ -91,16 +88,16 @@ class AssetModel @Inject() (db: Database) {
   }
 
   /**
-   * Case-Insensitive Search for assets that match a query.
-   *
+    * Case-Insensitive Search for assets that match a query.
+    *
    * If % characters are included in the query, it is assumed that the user knows what they are
-   * doing and the query is used as is. If % is not present in the query, they are appended on
-   * either side of the search term.  By doing this we definitely do not use any index.
-   *
+    * doing and the query is used as is. If % is not present in the query, they are appended on
+    * either side of the search term.  By doing this we definitely do not use any index.
+    *
    * @param query the query string to look for
-   * @return a List of Assets that match the query. The maximum size of this list is configurable
-   * using the key "search.max" in application.conf
-   */
+    * @return a List of Assets that match the query. The maximum size of this list is configurable
+    * using the key "search.max" in application.conf
+    */
   def search(rawQuery: String): List[Asset] = {
     val query = rawQuery.replace("_", """\_""")
     val searchTerm = if (query.contains("%")) query.toLowerCase else "%" + query.toLowerCase + "%"
@@ -116,17 +113,17 @@ class AssetModel @Inject() (db: Database) {
   }
 
   /**
-   * Compare assets in the database to a list of s3 keys
-   *
+    * Compare assets in the database to a list of s3 keys
+    *
    * S3 returns assets in case-sensitive order by key.  By travering our assets by key,
-   * case-sensitive, we can compare it to the list of keys from S3 to see which are missing
-   * and which need to be deleted.
-   *
+    * case-sensitive, we can compare it to the list of keys from S3 to see which are missing
+    * and which need to be deleted.
+    *
    * @param bucket the bucket to filter assets by
-   * @param s3Keys a list of keys for the bucket from s3
-   * @return a tuple that has a list of assets that need to be added to cashy,
-   *         and a list of assets that need to be deleted from cashy
-   */
+    * @param s3Keys a list of keys for the bucket from s3
+    * @return a tuple that has a list of assets that need to be added to cashy,
+    *         and a list of assets that need to be deleted from cashy
+    */
   def getChangedAssets(bucket: String, s3Keys: List[String]): Tuple2[List[String], List[Asset]] = {
     db.withConnection { implicit connection =>
       val assets = sql"""
@@ -136,9 +133,9 @@ class AssetModel @Inject() (db: Database) {
         ORDER BY `key` ASC
       """.asIterator(assetParser)
 
-      val assetsToDelete: MutableList[Asset] = MutableList()
-      val assetsToAdd: MutableList[String] = MutableList()
-      val s3Iter = s3Keys.toIterator
+      val assetsToDelete = List.newBuilder[Asset]
+      val assetsToAdd = List.newBuilder[String]
+      val s3Iter = s3Keys.iterator
 
       // consume the stream of assets
       assets.foreach { asset =>
@@ -148,28 +145,28 @@ class AssetModel @Inject() (db: Database) {
         } else {
           // Iterate through the s3 keys until we catch up with the cashy assets
           // any item that was skipped needs to be added to cashy
-          var s3Key = s3Iter.next
-          while(s3Key != asset.key) {
+          var s3Key = s3Iter.next()
+          while (s3Key != asset.key) {
             assetsToAdd += s3Key
-            s3Key = s3Iter.next
+            s3Key = s3Iter.next()
           }
         }
       }
 
       // If there are still things in the iterator they need to be added
-      while(s3Iter.hasNext) {
-        assetsToAdd += s3Iter.next
+      while (s3Iter.hasNext) {
+        assetsToAdd += s3Iter.next()
       }
 
-      (assetsToAdd.toList, assetsToDelete.toList)
+      (assetsToAdd.result(), assetsToDelete.result())
     }
   }
 
   /**
-   * Converts a string into a long value representing the first 8 bytes of its md5
-   * @param data the data to get the md5 hash of
-   * @return the string with the first 8 bytes of md5
-   */
+    * Converts a string into a long value representing the first 8 bytes of its md5
+    * @param data the data to get the md5 hash of
+    * @return the string with the first 8 bytes of md5
+    */
   private def getHash(data: String): String = {
     DigestUtils.md5Hex(data).take(8)
   }

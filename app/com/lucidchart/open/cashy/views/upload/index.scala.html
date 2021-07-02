@@ -11,8 +11,8 @@
 )(
   implicit
   request: play.api.mvc.Request[_],
-  buckets: Set[String],
-  extensions: Map[ExtensionType.Value,Set[String]],
+  buckets: com.lucidchart.open.cashy.config.Buckets,
+  extensions: com.lucidchart.open.cashy.config.ExtensionsConfig,
   user: User,
   uploadFeatures: UploadFeatures,
   messages: play.api.i18n.Messages
@@ -22,9 +22,9 @@
   <div class="row">
     <h2>Upload Assets</h2>
     <div class="well col-xs-6">
-      @helper.form(action=cashyRoutes.UploadController.uploadToS3(), 'id -> "uploadForm", ('enctype -> "multipart/form-data")) {
+      @helper.form(action=cashyRoutes.UploadController.uploadToS3, Symbol("id") -> "uploadForm", (Symbol("enctype") -> "multipart/form-data")) {
         <fieldset>
-          @helper.select(uploadForm("bucket"), buckets.map(b => b.toString -> b.toString).toSeq, 'id -> "bucket", '_label -> "Bucket", '_showConstraints -> false)
+          @helper.select(uploadForm("bucket"), buckets.names.map(b => b -> b).toSeq, Symbol("id") -> "bucket", Symbol("_label") -> "Bucket", Symbol("_showConstraints") -> false)
           @defining(request.queryString.get("assetURL")) { url =>
             <ul class="nav nav-tabs" role="tablist">
               <li class="@if(!url.isDefined) {active}"><a href="#assetFromFile" role="tab" data-toggle="tab">From File</a></li>
@@ -32,10 +32,10 @@
             </ul>
             <div class="tab-content">
               <div class="tab-pane @if(!url.isDefined) {active}" id="assetFromFile">
-                @helper.inputFile(uploadForm("assetFile"), '_label -> "Asset File", 'size -> 10, 'id -> "fileInput")
+                @helper.inputFile(uploadForm("assetFile"), Symbol("_label") -> "Asset File", Symbol("size") -> 10, Symbol("id") -> "fileInput")
               </div>
               <div class="tab-pane @if(url.isDefined) {active}" id="assetFromURL">
-                @helper.input(uploadForm("assetURL"), '_label -> null, 'id -> "assetURL") { (id, name, value, args) =>
+                @helper.input(uploadForm("assetURL"), Symbol("_label") -> null, Symbol("id") -> "assetURL") { (id, name, value, args) =>
                   <input type="url" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" placeholder="Enter a URL" />
                 }
               </div>
@@ -71,9 +71,9 @@
               <dd>
                 <input type="checkbox" name="resizeImage" id="resizeImage" value="true"/> <label for="resizeImage">Resize Image</label>
                 <div class="check-show">
-                  @helper.input(uploadForm("imageWidth"), '_label -> null, 'id -> "imageWidth", 'size -> 3, '_class -> "inline-input") { (id, name, value, args) =>
+                  @helper.input(uploadForm("imageWidth"), Symbol("_label") -> null, Symbol("id") -> "imageWidth", Symbol("size") -> 3, Symbol("_class") -> "inline-input") { (id, name, value, args) =>
                     <input type="text" name="@name" id="@id" @toHtmlArgs(args) value="@value" />
-                  }px x@helper.input(uploadForm("imageHeight"), '_label -> null, 'id -> "imageHeight", 'size -> 3, '_class -> "inline-input") { (id, name, value, args) =>
+                  }px x@helper.input(uploadForm("imageHeight"), Symbol("_label") -> null, Symbol("id") -> "imageHeight", Symbol("size") -> 3, Symbol("_class") -> "inline-input") { (id, name, value, args) =>
                     <input type="text" name="@name" id="@id" @toHtmlArgs(args) value="@value" />
                   }px
                   <input type="checkbox" id="aspectRatio" class="inline-input" checked="checked" name="aspectRatio"/> <label for="aspectRatio">Keep Aspect Ratio</label>
@@ -84,11 +84,11 @@
               </dd>
             </dl>
           }
-          @helper.input(uploadForm("assetName"), '_label -> "Asset Name", 'id -> "fileName") { (id, name, value, args) =>
+          @helper.input(uploadForm("assetName"), Symbol("_label") -> "Asset Name", Symbol("id") -> "fileName") { (id, name, value, args) =>
             <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
           }
           @if(uploadFeatures.krakenEnabled) {
-            @helper.input(uploadForm("assetRetinaName"), '_label -> "Retina Name", 'id -> "assetRetinaName", '_id -> "retinaNameContainer") { (id, name, value, args) =>
+            @helper.input(uploadForm("assetRetinaName"), Symbol("_label") -> "Retina Name", Symbol("id") -> "assetRetinaName", Symbol("_id") -> "retinaNameContainer") { (id, name, value, args) =>
               <input type="text" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" />
             }
           }
@@ -428,7 +428,7 @@
           data.append('height', $('#imageHeight').val());
 
           $.ajax({
-            url: '@cashyRoutes.UploadController.krakenPreview()',
+            url: '@cashyRoutes.UploadController.krakenPreview',
             type: 'POST',
             data: data,
             cache: false,

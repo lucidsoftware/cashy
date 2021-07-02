@@ -4,9 +4,9 @@ import java.io._
 import play.api.mvc.MultipartFormData.FilePart
 
 case class AssetData(
-  bytes: Array[Byte],
-  contentType: Option[String],
-  filename: String
+    bytes: Array[Byte],
+    contentType: Option[String],
+    filename: String
 )
 
 object AssetDataHelper {
@@ -25,7 +25,7 @@ object AssetDataHelper {
     val downloadResult = DownloadHelper.download(url)
     val queryStringIndex = url.lastIndexOf("?")
     val separatorIndex = url.lastIndexOf("/")
-    val filename = if(queryStringIndex > separatorIndex) {
+    val filename = if (queryStringIndex > separatorIndex) {
       url.substring(separatorIndex, queryStringIndex)
     } else {
       url.substring(separatorIndex)
