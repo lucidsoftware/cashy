@@ -1,22 +1,20 @@
 package com.lucidchart.open.cashy.models
 
 import javax.inject.Inject
-import com.lucidchart.open.relate.interp._
+import com.lucidchart.relate._
 import com.lucidchart.open.cashy.utils.Serializer
 
 import play.api.db.Database
 import com.google.api.client.auth.oauth2.StoredCredential
 
-
 case class StoredCredentialRecord(
-  key: String,
-  value: Array[Byte]
+    key: String,
+    value: Array[Byte]
 )
 
-object StoredCredentialModel extends StoredCredentialModel(play.api.Play.current.injector.instanceOf[Database])
 class StoredCredentialModel @Inject() (db: Database) {
 
-  def clearCredentials() {
+  def clearCredentials(): Unit = {
     db.withConnection { implicit connection =>
       sql"""TRUNCATE TABLE `stored_credentials`""".execute()
     }
@@ -29,13 +27,13 @@ class StoredCredentialModel @Inject() (db: Database) {
       val count = sql"""SELECT COUNT(*)
         FROM `stored_credentials`
         WHERE `value` = $serializedValue""".asSingle { row =>
-          row.int("COUNT(*)")
+        row.int("COUNT(*)")
       }
       count != 0
     }
   }
 
-  def deleteKey(key: String) {
+  def deleteKey(key: String): Unit = {
     db.withConnection { implicit connection =>
       sql"""DELETE FROM `stored_credentials`
         WHERE `key` = $key""".execute()
@@ -47,7 +45,7 @@ class StoredCredentialModel @Inject() (db: Database) {
       val recordOption = sql"""SELECT `key`, `value`
         FROM `stored_credentials`
         WHERE `key` = $key""".asSingleOption { row =>
-          StoredCredentialRecord(row.string("key"), row.byteArray("value"))
+        StoredCredentialRecord(row.string("key"), row.byteArray("value"))
       }
       recordOption.flatMap(record => deserializeCredential(record.value))
     }
@@ -57,7 +55,7 @@ class StoredCredentialModel @Inject() (db: Database) {
     db.withConnection { implicit connection =>
       sql"""SELECT `key`
         FROM `stored_credentials`""".asSet { row =>
-          row.string("key")
+        row.string("key")
       }
     }
   }
@@ -66,7 +64,7 @@ class StoredCredentialModel @Inject() (db: Database) {
     db.withConnection { implicit connection =>
       val byteSet = sql"""SELECT `value`
         FROM `stored_credentials`""".asSet { row =>
-          row.byteArray("value")
+        row.byteArray("value")
       }
       byteSet.flatMap(bytes => deserializeCredential(bytes))
     }
@@ -87,7 +85,7 @@ class StoredCredentialModel @Inject() (db: Database) {
     db.withConnection { implicit connection =>
       sql"""SELECT COUNT(*)
         FROM `stored_credentials`""".asSingle { row =>
-          row.int("COUNT(*)")
+        row.int("COUNT(*)")
       }
     }
   }

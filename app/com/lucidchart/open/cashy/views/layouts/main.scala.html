@@ -10,7 +10,7 @@
   content: Html
 )(
   implicit request: RequestHeader,
-  buckets: Set[String],
+  buckets: com.lucidchart.open.cashy.config.Buckets,
   messages: play.api.i18n.Messages
 )
 
@@ -55,14 +55,14 @@
   <body>
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container-fluid">
-        <a class="navbar-brand" href="@cashyRoutes.HomeController.index()">
+        <a class="navbar-brand" href="@cashyRoutes.HomeController.index">
           <img src="@routes.Assets.at("img/cashy-logo.png")" alt="Cashy" title="Cashy" class="cashy-logo">
         </a>
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
             <li>
-              @helper.form(action = cashyRoutes.SearchController.search, 'class -> "navbar-form search-bar") {
-                @helper.input(searchForm("q"), 'id -> "searchInput") { (id, name, value, args) =>
+              @helper.form(action = cashyRoutes.SearchController.search, Symbol("class") -> "navbar-form search-bar") {
+                @helper.input(searchForm("q"), Symbol("id") -> "searchInput") { (id, name, value, args) =>
                   <div class="input-group">
                     <input type="text" class="form-control" placeholder="Search Files" name="@name" id="@id">
                     <div class="input-group-btn">
@@ -75,7 +75,7 @@
             <li class="dropdown">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Browse <b class="caret"></b></a>
                 <ul class="dropdown-menu">
-                  @for(bucket <- buckets) {
+                  @for(bucket <- buckets.names) {
                     <li><a href="@cashyRoutes.BrowseController.index(bucket, "")">@bucket</a></li>
                   }
                 </ul>
@@ -88,14 +88,14 @@
               <li class="dropdown pull-right">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">@userOption.get.email <b class="caret"></b></a>
                 <ul class="dropdown-menu" role="menu">
-                  <li><a href="@cashyRoutes.AuthController.logout()">Logout</a></li>
+                  <li><a href="@cashyRoutes.AuthController.logout">Logout</a></li>
                 </ul>
               </li>
             } else {
               <li class="dropdown pull-right">
                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">Login <b class="caret"></b></a>
                 <ul class="dropdown-menu" role="menu">
-                  <li><a href="@cashyRoutes.AuthController.login()">Google Oauth2</a></li>
+                  <li><a href="@cashyRoutes.AuthController.login">Google Oauth2</a></li>
                 </ul>
               </li>
             }

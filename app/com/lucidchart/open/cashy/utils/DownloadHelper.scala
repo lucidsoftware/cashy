@@ -7,8 +7,8 @@ import org.apache.http.impl.client.HttpClientBuilder
 case class DownloadFailedException(message: String) extends Exception(message)
 
 case class DownloadResult(
-  bytes: Array[Byte],
-  contentType: Option[String]
+    bytes: Array[Byte],
+    contentType: Option[String]
 )
 
 object DownloadHelper extends DownloadHelper
@@ -33,13 +33,11 @@ class DownloadHelper {
         val contentType = Option(response.getEntity().getContentType().getValue())
         DownloadResult(bytes, contentType)
       }
-    }
-    catch {
+    } catch {
       case e: Exception => {
         throw new DownloadFailedException("Unable to download from " + url + ": " + e.getMessage)
       }
-    }
-    finally {
+    } finally {
       httpClient.close()
     }
   }

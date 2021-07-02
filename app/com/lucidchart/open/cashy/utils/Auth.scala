@@ -1,155 +1,166 @@
 package com.lucidchart.open.cashy.utils
 
 import java.util.Date
+import javax.inject.Inject
 
 import scala.util.Random
 
-import play.api.Play.configuration
-import play.api.Play.current
-import play.api.mvc.Cookie
-import play.api.mvc.CookieBaker
-import play.api.mvc.Cookies
-import play.api.mvc.DiscardingCookie
-import play.api.mvc.RequestHeader
-import play.api.mvc.{Session => PlaySession}
+import play.api.Configuration
+import play.api.mvc.{
+  Cookie,
+  CookieBaker,
+  Cookies,
+  DiscardingCookie,
+  UrlEncodedCookieDataCodec,
+  RequestHeader,
+  Session => PlaySession
+}
+import play.api.libs.crypto.CookieSigner
 
-object Auth {
-  protected val applicationSecret = configuration.getString("application.secret").get
-  
+class Auth @Inject() (configuration: Configuration, sessionFactory: Auth.SessionFactory, sessionCookieBaker: Auth.SessionCookieBaker) {
+
+  import Auth._
+
   /**
-   * Copied & modified from play source.
-   * 
-   * @see play.api.mvc.Session
-   */
-  class SessionCookieBaker extends CookieBaker[PlaySession] {
-    val COOKIE_NAME = configuration.getString("auth.cookie.name").get
-    val emptyCookie = new PlaySession
-    override val secure = configuration.getBoolean("auth.cookie.secure").get
-    override val isSigned = true
-    override val httpOnly = true
-    override val path = configuration.getString("auth.cookie.path").get
-    override val domain = configuration.getString("auth.cookie.domain")
-    override val maxAge: Option[Int] = None
-    val ttl = configuration.getInt("auth.cookie.ttl").get * 1000L
-    
-    def deserialize(data: Map[String, String]) = new PlaySession(data)
-    def serialize(session: PlaySession) = session.data
-    def maxTtlDate = new Date(System.currentTimeMillis + ttl)
-  }
-  
-  protected class SessionCookieBakerRemembered extends SessionCookieBaker {
-    override val maxAge = Some(configuration.getInt("auth.cookie.remembermeMaxAge").get)
-    override val ttl = maxAge.get * 1000L
-  }
-  
-  object SessionCookieBaker extends SessionCookieBaker
-  object SessionCookieBakerRemembered extends SessionCookieBakerRemembered
-  
+    * The cookie used to discard auth headers
+    */
+  def discardingCookie =
+    DiscardingCookie(
+      sessionCookieBaker.COOKIE_NAME,
+      sessionCookieBaker.path,
+      sessionCookieBaker.domain,
+      sessionCookieBaker.secure
+    )
+
   /**
-   * The cookie used to discard auth headers
-   */
-  def discardingCookie = DiscardingCookie(
-    SessionCookieBaker.COOKIE_NAME,
-    SessionCookieBaker.path,
-    SessionCookieBaker.domain,
-    SessionCookieBaker.secure
-  )
-  
-  /**
-   * Generate the authentication cookie to send to the client.
-   * 
+    * Generate the authentication cookie to send to the client.
+    *
    * @param userId ID of the user that is logged in
-   * @param rememberme True if the user does not want to login frequently
-   * @param userAgent from the request
-   * @return cookie
-   */
+    * @param rememberme True if the user does not want to login frequently
+    * @param userAgent from the request
+    * @return cookie
+    */
   def generateAuthCookie(userId: Long, rememberme: Boolean, userAgent: String) = {
-    val handler = if (rememberme) SessionCookieBakerRemembered else SessionCookieBaker
+    val handler = if (rememberme) sessionCookieBaker.remembered else sessionCookieBaker
     val session = new Session(userId, new Date(), handler.maxTtlDate, rememberme, HashHelper.md5(userAgent))
     handler.encodeAsCookie(session.toSession)
   }
-  
+
   /**
-   * Parses the auth cookie given. Returns the session if the cookie
-   * is valid.
-   * 
+    * Parses the auth cookie given. Returns the session if the cookie
+    * is valid.
+    *
    * @param cookie
-   * @param userAgent from the request
-   * @return session info
-   */
+    * @param userAgent from the request
+    * @return session info
+    */
   def parseAuthCookie(cookie: Option[Cookie], userAgent: String) = {
-    Session.fromCookie(cookie, HashHelper.md5(userAgent))
+    sessionFactory.fromCookie(cookie, HashHelper.md5(userAgent))
   }
-  
+
   /**
-   * Finds the auth cookie, parses it, and returns the session if the cookie
-   * is valid.
-   * 
+    * Finds the auth cookie, parses it, and returns the session if the cookie
+    * is valid.
+    *
    * @param cookies
-   * @param userAgent from the request
-   * @return session info
-   */
+    * @param userAgent from the request
+    * @return session info
+    */
   def parseAuthCookie(cookies: Cookies, userAgent: String): Option[Session] = {
-    parseAuthCookie(cookies.get(SessionCookieBaker.COOKIE_NAME), userAgent)
+    parseAuthCookie(cookies.get(sessionCookieBaker.COOKIE_NAME), userAgent)
   }
-  
+
   /**
-   * Finds the auth cookie, parses it, and returns the session if the cookie
-   * is valid.
-   * 
+    * Finds the auth cookie, parses it, and returns the session if the cookie
+    * is valid.
+    *
    * @param request
-   * @return session info
-   */
+    * @return session info
+    */
   def parseAuthCookie(request: RequestHeader): Option[Session] = {
     parseAuthCookie(
       request.cookies,
       request.headers.get("User-Agent").getOrElse("")
     )
   }
-  
+
+}
+
+object Auth {
+
   /**
-   * Auth Session
-   * 
-   * Contains user ID and created date for the session
-   */
-  case class Session(userId: Long, created: Date, expires: Date, rememberme: Boolean, userAgentHash: String) {
-    /**
-     * Check to see if the session has expired (regardless of whether
-     * the client has enforced it or not).
-     */
-    def expired = expires.before(new Date())
-    
-    /**
-     * Convert this AuthSession into a PlaySession
-     */
-    def toSession = PlaySession(Map(
-      Session.userIdKey     -> userId.toString,
-      Session.createdKey    -> (created.getTime / 1000).toString,
-      Session.expiresKey    -> (expires.getTime / 1000).toString,
-      Session.remembermeKey -> (if (rememberme) "1" else "0"),
-      Session.userAgentKey  -> userAgentHash
-    ))
+    * Copied & modified from play source.
+    *
+   * @see play.api.mvc.Session
+    */
+  class SessionCookieBaker(configuration: Configuration, val cookieSigner: CookieSigner) extends CookieBaker[PlaySession] with UrlEncodedCookieDataCodec {
+    val COOKIE_NAME = configuration.get[String]("auth.cookie.name")
+    val emptyCookie = new PlaySession
+    override val secure = configuration.get[Boolean]("auth.cookie.secure")
+    override val isSigned = true
+    override val httpOnly = true
+    override val path = configuration.get[String]("auth.cookie.path")
+    override val domain = configuration.getOptional[String]("auth.cookie.domain")
+    override val maxAge: Option[Int] = None
+    val ttl = configuration.get[Int]("auth.cookie.ttl") * 1000L
+
+    def deserialize(data: Map[String, String]) = new PlaySession(data)
+    def serialize(session: PlaySession) = session.data
+    def maxTtlDate = new Date(System.currentTimeMillis + ttl)
+
+    private[Auth] lazy val remembered: SessionCookieBaker = new SessionCookieBaker(configuration, cookieSigner) {
+      override val maxAge = Some(configuration.get[Int]("auth.cookie.remembermeMaxAge"))
+      override val ttl = maxAge.get * 1000L
+    }
   }
-  
-  object Session {
-    private val userIdKey     = "u"
-    private val createdKey    = "c"
-    private val expiresKey    = "e"
-    private val remembermeKey = "r"
-    private val userAgentKey  = "a"
-    
+
+  private val userIdKey = "u"
+  private val createdKey = "c"
+  private val expiresKey = "e"
+  private val remembermeKey = "r"
+  private val userAgentKey = "a"
+
+
+  /**
+    * Auth Session
+    *
+   * Contains user ID and created date for the session
+    */
+  case class Session(userId: Long, created: Date, expires: Date, rememberme: Boolean, userAgentHash: String) {
+
     /**
-     * Parse the details from a cookie, return the auth session information, if found.
-     * 
+      * Check to see if the session has expired (regardless of whether
+      * the client has enforced it or not).
+      */
+    def expired = expires.before(new Date())
+
+    /**
+      * Convert this AuthSession into a PlaySession
+      */
+    def toSession =
+      PlaySession(
+        Map(
+          userIdKey -> userId.toString,
+          createdKey -> (created.getTime / 1000).toString,
+          expiresKey -> (expires.getTime / 1000).toString,
+          remembermeKey -> (if (rememberme) "1" else "0"),
+          userAgentKey -> userAgentHash
+        )
+      )
+  }
+
+  class SessionFactory @Inject() (sessionCookieBaker: Auth.SessionCookieBaker) {
+    /**
+      * Parse the details from a cookie, return the auth session information, if found.
+      *
      * @param cookie
-     * @return session
-     */
+      * @return session
+      */
     def fromCookie(cookie: Option[Cookie], userAgentHash: String): Option[Session] = {
-      val playSession = SessionCookieBaker.decodeFromCookie(cookie)
+      val playSession = sessionCookieBaker.decodeFromCookie(cookie)
       if (playSession.isEmpty) {
         None
-      }
-      else {
+      } else {
         try {
           val session = new Session(
             playSession(userIdKey).toLong,
@@ -158,18 +169,17 @@ object Auth {
             playSession(remembermeKey) == "1",
             playSession(userAgentKey)
           )
-          
+
           if (session.expired) {
             throw new Exception
           }
-          
+
           if (session.userAgentHash != userAgentHash) {
             throw new Exception
           }
-          
+
           Some(session)
-        }
-        catch {
+        } catch {
           case e: Exception => None
         }
       }

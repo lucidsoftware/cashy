@@ -20,15 +20,13 @@ object Serializer {
         val o = in.readObject.asInstanceOf[T]
         in.close()
         Some(o)
-      }
-      catch {
+      } catch {
         case e: Exception => {
-          throw new ClassCastException ("Serialization Problem")
+          throw new ClassCastException("Serialization Problem")
           None
         }
       }
-    }
-    else {
+    } else {
       None
     }
   }
