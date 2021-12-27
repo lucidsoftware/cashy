@@ -5,7 +5,7 @@ import play.api.Logger
 import play.api.Play.current
 import play.api.Play.configuration
 import com.amazonaws.{AmazonClientException, AmazonServiceException}
-import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model._
 import com.amazonaws.auth.profile.ProfileCredentialsProvider
 import com.amazonaws.auth.InstanceProfileCredentialsProvider
@@ -29,7 +29,7 @@ class S3Client extends AWSConfig {
   protected val s3AccessUrl = configuration.getString("amazon.s3.fullAccessUrl").get
 
   protected val awsCredentialsProvider = getAWSCredentialsProvider()
-  protected val s3Client = new AmazonS3Client(awsCredentialsProvider)
+  protected val s3Client = AmazonS3ClientBuilder.standard().withCredentials(awsCredentialsProvider).build()
 
 
   def existsInS3(bucketName: String, objectName: String): Boolean = {
@@ -163,7 +163,7 @@ class S3Client extends AWSConfig {
 trait AWSConfig {
   protected def getAWSCredentialsProvider(): AWSCredentialsProvider = {
     try {
-      new InstanceProfileCredentialsProvider()
+      InstanceProfileCredentialsProvider.getInstance()
     } catch {
       case e: Exception =>
           new ProfileCredentialsProvider("/etc/aws/dev-credentials", "default")
