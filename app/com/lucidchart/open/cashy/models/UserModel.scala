@@ -29,10 +29,14 @@ class UserModel @Inject() (db: Database) {
   }
 
   def findByIds(userIds: List[Long]): List[User] = {
-    db.withConnection { implicit connection =>
-      sql"""SELECT `id`, `google_id`, `email`
-        FROM `users`
-        WHERE `id` IN ($userIds)""".asList(userParser)
+    if (userIds.isEmpty) {
+      Nil
+    } else {
+      db.withConnection { implicit connection =>
+        sql"""SELECT `id`, `google_id`, `email`
+          FROM `users`
+          WHERE `id` IN ($userIds)""".asList(userParser)
+      }
     }
   }
 
