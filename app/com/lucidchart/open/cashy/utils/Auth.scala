@@ -17,7 +17,11 @@ import play.api.mvc.{
 }
 import play.api.libs.crypto.CookieSigner
 
-class Auth @Inject() (configuration: Configuration, sessionFactory: Auth.SessionFactory, sessionCookieBaker: Auth.SessionCookieBaker) {
+class Auth @Inject() (
+    configuration: Configuration,
+    sessionFactory: Auth.SessionFactory,
+    sessionCookieBaker: Auth.SessionCookieBaker
+) {
 
   import Auth._
 
@@ -93,7 +97,9 @@ object Auth {
     *
    * @see play.api.mvc.Session
     */
-  class SessionCookieBaker(configuration: Configuration, val cookieSigner: CookieSigner) extends CookieBaker[PlaySession] with UrlEncodedCookieDataCodec {
+  class SessionCookieBaker @Inject() (configuration: Configuration, val cookieSigner: CookieSigner)
+      extends CookieBaker[PlaySession]
+      with UrlEncodedCookieDataCodec {
     val COOKIE_NAME = configuration.get[String]("auth.cookie.name")
     val emptyCookie = new PlaySession
     override val secure = configuration.get[Boolean]("auth.cookie.secure")
@@ -108,10 +114,11 @@ object Auth {
     def serialize(session: PlaySession) = session.data
     def maxTtlDate = new Date(System.currentTimeMillis + ttl)
 
-    private[Auth] lazy val remembered: SessionCookieBaker = new SessionCookieBaker(configuration, cookieSigner) {
-      override val maxAge = Some(configuration.get[Int]("auth.cookie.remembermeMaxAge"))
-      override val ttl = maxAge.get * 1000L
-    }
+    private[Auth] lazy val remembered: SessionCookieBaker =
+      new SessionCookieBaker(configuration, cookieSigner) {
+        override val maxAge = Some(configuration.get[Int]("auth.cookie.remembermeMaxAge"))
+        override val ttl = maxAge.get * 1000L
+      }
   }
 
   private val userIdKey = "u"
@@ -119,7 +126,6 @@ object Auth {
   private val expiresKey = "e"
   private val remembermeKey = "r"
   private val userAgentKey = "a"
-
 
   /**
     * Auth Session
@@ -150,6 +156,7 @@ object Auth {
   }
 
   class SessionFactory @Inject() (sessionCookieBaker: Auth.SessionCookieBaker) {
+
     /**
       * Parse the details from a cookie, return the auth session information, if found.
       *

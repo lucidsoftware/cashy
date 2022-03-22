@@ -11,16 +11,17 @@ import scala.concurrent.ExecutionContext
 
 object FileHandler extends FileHandler
 class FileHandler {
-  def handleFilePartAsByteArray(implicit ec: ExecutionContext): FilePartHandler[Array[Byte]] = (info: FileInfo) =>
-    Accumulator(Sink.reduce[ByteString](_ ++ _)).map { bytes =>
-      val byteArray: Array[Byte] = bytes.toArray
-      new FilePart(
-        info.partName,
-        info.fileName,
-        info.contentType,
-        byteArray,
-        byteArray.length,
-        info.dispositionType
-      )
-    }
+  def handleFilePartAsByteArray(implicit ec: ExecutionContext): FilePartHandler[Array[Byte]] =
+    (info: FileInfo) =>
+      Accumulator(Sink.reduce[ByteString](_ ++ _)).map { bytes =>
+        val byteArray: Array[Byte] = bytes.toArray
+        new FilePart(
+          info.partName,
+          info.fileName,
+          info.contentType,
+          byteArray,
+          byteArray.length,
+          info.dispositionType
+        )
+      }
 }
