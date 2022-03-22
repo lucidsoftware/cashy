@@ -279,7 +279,8 @@ class UploadController @Inject() (
   def validate =
     authAction.authenticatedUser { implicit user =>
       Action(parse.multipartFormData(FileHandler.handleFilePartAsByteArray)) { implicit request =>
-        val response = uploadForm.bindFromRequest()
+        val response = uploadForm
+          .bindFromRequest()
           .fold(
             formWithErrors => formWithErrors.errors,
             data => {

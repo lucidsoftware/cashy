@@ -2,7 +2,7 @@ package com.lucidchart.open.cashy.models
 
 import com.lucidchart.open.cashy.config.Buckets
 import com.lucidchart.relate._
-import java.util.Date
+import java.time.Instant
 import javax.inject.Inject
 import org.apache.commons.codec.digest.DigestUtils
 import play.api.db.Database
@@ -13,7 +13,7 @@ case class Asset(
     bucket: String,
     key: String,
     userId: Long,
-    created: Date,
+    created: Instant,
     hidden: Boolean
 ) {
   def parent: String = {
@@ -31,7 +31,7 @@ class AssetModel @Inject() (buckets: Buckets, configuration: Configuration, db: 
       bucket,
       key,
       row.long("user_id"),
-      row.date("created"),
+      row.instant("created"),
       row.bool("hidden")
     )
   }
@@ -59,10 +59,10 @@ class AssetModel @Inject() (buckets: Buckets, configuration: Configuration, db: 
   }
 
   def createAsset(bucket: String, key: String, userId: Long): Unit = {
-    createAsset(bucket, key, userId, new Date())
+    createAsset(bucket, key, userId, Instant.now())
   }
 
-  def createAsset(bucket: String, key: String, userId: Long, date: Date): Unit = {
+  def createAsset(bucket: String, key: String, userId: Long, date: Instant): Unit = {
     db.withConnection { implicit connection =>
       sql"""INSERT INTO `assets`
         (`bucket`, `key`, `user_id`, `created`, `bucket_hash`, `key_hash`)

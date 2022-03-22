@@ -7,16 +7,16 @@ import com.lucidchart.open.cashy.config.Buckets
 import com.lucidchart.open.cashy.utils.{Mailer, MailerAddress, MailerMessage, KrakenClient}
 
 import akka.actor.{Actor, ActorRef, Props, ActorSystem}
+import java.time.Instant
+import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import play.api.libs.concurrent.Akka
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
-import java.util.Date
-import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration._
 
 case class S3SyncAsset(
     key: String,
-    date: Date
+    date: Instant
 )
 
 @Singleton
@@ -57,7 +57,7 @@ class S3Sync @Inject() (
   private def sync(): Unit = {
 
     buckets.names.map { bucket =>
-      val allS3Assets = s3Client.listAllObjects(bucket)
+      val allS3Assets = s3Client.listAllObjects(bucket).toList
 
       val nonTempAssets =
         deleteTempAssets(

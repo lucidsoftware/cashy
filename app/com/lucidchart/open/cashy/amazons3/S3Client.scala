@@ -1,16 +1,21 @@
 package com.lucidchart.open.cashy.amazons3
 
 import java.io.ByteArrayInputStream
+import java.nio.file.Paths
 import javax.inject.Inject
-import play.api.Logger
 import play.api.Configuration
-import com.amazonaws.{AmazonClientException, AmazonServiceException}
-import com.amazonaws.services.s3.AmazonS3ClientBuilder
-import com.amazonaws.services.s3.model._
-import com.amazonaws.auth.profile.ProfileCredentialsProvider
-import com.amazonaws.auth.InstanceProfileCredentialsProvider
-import com.amazonaws.auth.AWSCredentialsProvider
+import play.api.Logger
 import scala.jdk.CollectionConverters._
+import software.amazon.awssdk.auth.credentials.{
+  AwsCredentialsProvider,
+  DefaultCredentialsProvider,
+  ProfileCredentialsProvider
+}
+import software.amazon.awssdk.core.exception.SdkException
+import software.amazon.awssdk.profiles.ProfileFile
+import software.amazon.awssdk.services.s3.model._
+import software.amazon.awssdk.services.s3.{S3Client => AmazonS3Client}
+import software.amazon.awssdk.core.sync.RequestBody
 
 case class ListObjectsResponse(
     folders: List[String],
@@ -18,7 +23,7 @@ case class ListObjectsResponse(
     nextMarker: Option[String]
 )
 
-class S3Client @Inject() (configuration: Configuration) extends AWSConfig {
+class S3Client @Inject() (configuration: Configuration) {
   val logger = Logger(this.getClass)
 
   protected val uploadTimeout = configuration.get[Int]("amazon.s3.upload.timeout")
@@ -26,35 +31,32 @@ class S3Client @Inject() (configuration: Configuration) extends AWSConfig {
   protected val listingMaxKeys = configuration.get[Int]("amazon.s3.listing.maxKeys")
   protected val tempUploadPrefix = configuration.get[String]("amazon.s3.tempUploadPrefix")
   protected val s3AccessUrl = configuration.get[String]("amazon.s3.fullAccessUrl")
+  private val credentialsFile = configuration.getOptional[String]("aws.credentialsFile")
 
-  protected val awsCredentialsProvider = getAWSCredentialsProvider()
-  protected val s3Client = AmazonS3ClientBuilder.standard().withCredentials(awsCredentialsProvider).build()
+  protected val awsCredentialsProvider = getAwsCredentialsProvider()
+  protected val s3Client = AmazonS3Client.builder().credentialsProvider(awsCredentialsProvider).build()
 
   def existsInS3(bucketName: String, objectName: String): Boolean = {
     try {
-      s3Client.getObjectMetadata(bucketName, objectName)
+      s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(objectName).build())
       true
     } catch {
-      case e: AmazonS3Exception => {
-        if (e.getStatusCode() == 404) {
-          false
-        } else {
-          throw e
-        }
-      }
+      case e: NoSuchKeyException => false
     }
   }
 
   def createFolder(bucketName: String, key: String): Unit = {
     try {
       s3Client.putObject(
-        bucketName,
-        key,
-        new java.io.ByteArrayInputStream(new Array[Byte](0)),
-        new ObjectMetadata()
+        PutObjectRequest
+          .builder()
+          .bucket(bucketName)
+          .key(key)
+          .build(),
+        RequestBody.fromBytes(Array(0))
       )
     } catch {
-      case e: AmazonClientException => {
+      case e: SdkException => {
         logger.error(s"Error when creating folder (uploading) to S3 $bucketName/$key", e)
         throw e
       }
@@ -68,26 +70,24 @@ class S3Client @Inject() (configuration: Configuration) extends AWSConfig {
       contentType: Option[String],
       gzipped: Boolean = false
   ): Boolean = {
-    val metadata = new ObjectMetadata
-    metadata.setContentLength(bytes.length)
-    metadata.setCacheControl("public, no-transform, max-age=" + uploadCacheTime)
-    contentType.map { contentType =>
-      metadata.setContentType(contentType)
-    }
-
-    if (gzipped) {
-      metadata.setContentEncoding("gzip")
-    }
-
     val objectName = if (gzipped) assetName + ".gz" else assetName
 
+    val requestBuilder = PutObjectRequest
+      .builder()
+      .bucket(bucketName)
+      .key(objectName)
+      .contentLength(bytes.length)
+      .cacheControl(s"public, no-transform, max-age=${uploadCacheTime}")
+    contentType.foreach { contentType => requestBuilder.contentType(contentType) }
+    if (gzipped) {
+      requestBuilder.contentEncoding("gzip")
+    }
+
     try {
-      s3Client.putObject(
-        new PutObjectRequest(bucketName, objectName, new ByteArrayInputStream(bytes), metadata)
-      )
+      s3Client.putObject(requestBuilder.build(), RequestBody.fromBytes(bytes))
       true
     } catch {
-      case e: AmazonClientException => {
+      case e: SdkException => {
         logger.error("Error while uploading to S3 " + objectName, e)
         throw e
       }
@@ -109,7 +109,7 @@ class S3Client @Inject() (configuration: Configuration) extends AWSConfig {
   def removeFromS3(bucketName: String, assetName: String, gzipped: Boolean = false): Unit = {
     val objectName = if (gzipped) assetName + ".gz" else assetName
     try {
-      s3Client.deleteObject(bucketName, assetName)
+      s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(assetName).build())
     } catch {
       case e: Exception => {
         logger.error(s"Error when deleting asset $bucketName/$objectName")
@@ -119,27 +119,25 @@ class S3Client @Inject() (configuration: Configuration) extends AWSConfig {
   }
 
   def listObjects(bucketName: String, prefix: String, marker: Option[String] = None): ListObjectsResponse = {
-    val listRequest = new ListObjectsRequest()
-    listRequest.setBucketName(bucketName)
-    listRequest.setPrefix(prefix)
-    listRequest.setDelimiter("/")
-    listRequest.setMaxKeys(listingMaxKeys)
+    val requestBuilder = ListObjectsV2Request
+      .builder()
+      .bucket(bucketName)
+      .prefix(prefix)
+      .delimiter("/")
+      .maxKeys(listingMaxKeys)
 
-    if (marker.isDefined) {
-      listRequest.setMarker(marker.get)
-    }
+    marker.foreach(requestBuilder.continuationToken(_))
 
     try {
-      val objectListing = s3Client.listObjects(listRequest)
+      val objectListing = s3Client.listObjectsV2(requestBuilder.build())
       val folders =
-        objectListing
-          .getCommonPrefixes()
-          .asScala
-          .toList
+        objectListing.commonPrefixes.asScala.iterator
+          .map(_.prefix)
           .filter(folder => !folder.startsWith(tempUploadPrefix))
+          .toList
       val assets =
-        objectListing.getObjectSummaries().asScala.toList.map(_.getKey()).filter(key => key != prefix)
-      val nextMarker = Option(objectListing.getNextMarker())
+        objectListing.contents.asScala.iterator.map(_.key).filter(key => key != prefix).toList
+      val nextMarker = Option(objectListing.nextContinuationToken())
       ListObjectsResponse(folders, assets, nextMarker)
 
     } catch {
@@ -150,22 +148,15 @@ class S3Client @Inject() (configuration: Configuration) extends AWSConfig {
     }
   }
 
-  def listAllObjects(bucketName: String): List[S3SyncAsset] = {
-    val listRequest = new ListObjectsRequest()
-    listRequest.setBucketName(bucketName)
+  def listAllObjects(bucketName: String): Iterator[S3SyncAsset] = {
+    val listRequest = ListObjectsV2Request.builder().bucket(bucketName).build()
 
     try {
-      val objectListing = s3Client.listObjects(listRequest)
-      val firstAssets =
-        objectListing
-          .getObjectSummaries()
-          .asScala
-          .toList
-          .map(o => S3SyncAsset(o.getKey(), o.getLastModified()))
-      val remainingAssets = listAllObjectsPaged(objectListing)
-
-      // Filter out anyting ending with a / since those aren't really assets
-      (firstAssets ++ remainingAssets).filter(!_.key.endsWith("/"))
+      val objectListings = s3Client.listObjectsV2Paginator(listRequest)
+      for {
+        listing <- objectListings.asScala.iterator
+        o <- listing.contents.asScala.iterator if !o.key.endsWith("/")
+      } yield S3SyncAsset(o.key, o.lastModified)
     } catch {
       case e: Exception => {
         logger.error("Error listing objects")
@@ -174,30 +165,13 @@ class S3Client @Inject() (configuration: Configuration) extends AWSConfig {
     }
   }
 
-  private def listAllObjectsPaged(previousListing: ObjectListing): List[S3SyncAsset] = {
-    if (!previousListing.isTruncated()) {
-      List()
-    } else {
-      val objectListing = s3Client.listNextBatchOfObjects(previousListing)
-      val assets =
-        objectListing
-          .getObjectSummaries()
-          .asScala
-          .toList
-          .map(o => S3SyncAsset(o.getKey(), o.getLastModified()))
-      assets ++ listAllObjectsPaged(objectListing)
-    }
+  private def getAwsCredentialsProvider(): AwsCredentialsProvider = {
+    credentialsFile
+      .map { f =>
+        val path = ProfileFile.builder().content(Paths.get(f)).`type`(ProfileFile.Type.CREDENTIALS).build()
+        ProfileCredentialsProvider.builder().profileFile(path).build()
+      }
+      .getOrElse(DefaultCredentialsProvider.create())
   }
 
-}
-
-trait AWSConfig {
-  protected def getAWSCredentialsProvider(): AWSCredentialsProvider = {
-    try {
-      InstanceProfileCredentialsProvider.getInstance()
-    } catch {
-      case e: Exception =>
-        new ProfileCredentialsProvider("/etc/aws/dev-credentials", "default")
-    }
-  }
 }
