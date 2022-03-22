@@ -7,6 +7,8 @@ version := "0.0.1." + "git rev-parse --short HEAD".!!.trim + ".SNAPSHOT"
 
 libraryDependencies ++= Seq(
   jdbc,
+  evolutions,
+  guice,
   "com.google.inject" % "guice" % "5.0.1",
   "com.google.oauth-client" % "google-oauth-client-java6" % "1.18.0-rc",
   "com.google.http-client" % "google-http-client" % "1.18.0-rc",
