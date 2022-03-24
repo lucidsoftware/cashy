@@ -5,7 +5,6 @@ import com.google.api.client.auth.oauth2._
 import com.google.api.client.http.GenericUrl
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
-import com.google.api.client.googleapis.auth.oauth2._
 import play.api.Configuration
 import play.api.libs.json._
 import scala.jdk.CollectionConverters._

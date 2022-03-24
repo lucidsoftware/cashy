@@ -5,7 +5,6 @@ import com.google.api.client.util.store.{DataStoreFactory, AbstractDataStore, Da
 import com.google.api.client.auth.oauth2.StoredCredential
 import com.google.api.client.http.GenericUrl
 import com.google.api.client.http.javanet.NetHttpTransport
-import com.google.api.client.json.jackson2.JacksonFactory
 import scala.jdk.CollectionConverters._
 
 import com.lucidchart.open.cashy.models.StoredCredentialModel
