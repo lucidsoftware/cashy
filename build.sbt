@@ -13,9 +13,9 @@ libraryDependencies ++= Seq(
   "com.google.oauth-client" % "google-oauth-client" % "1.30.4",
   "com.google.http-client" % "google-http-client-jackson2" % "1.32.1",
   "com.lucidchart" %% "relate" % "3.0.0",
-  "mysql" % "mysql-connector-java" % "5.1.23",
-  "org.apache.httpcomponents" % "httpclient" % "4.3.6",
-  "org.apache.commons" % "commons-email" % "1.3.3",
+  "mysql" % "mysql-connector-java" % "8.0.28",
+  "org.apache.httpcomponents" % "httpclient" % "4.5.13",
+  "org.apache.commons" % "commons-email" % "1.5",
   "com.yahoo.platform.yui" % "yuicompressor" % "2.4.8",
   "software.amazon.awssdk" % "s3" % "2.17.152",
 )
