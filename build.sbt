@@ -5,6 +5,7 @@ enablePlugins(PlayScala)
 name := "Cashy"
 version := "0.0.1." + "git rev-parse --short HEAD".!!.trim + ".SNAPSHOT"
 
+maintainer := "Lucid Software"
 libraryDependencies ++= Seq(
   jdbc,
   evolutions,
