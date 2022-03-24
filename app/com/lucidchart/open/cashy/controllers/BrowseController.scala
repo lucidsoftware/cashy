@@ -78,7 +78,7 @@ class BrowseController @Inject() (
             )
           )
           .groupBy(a => a.name.stripSuffix(".gz"))
-          .map {
+          .flatMap {
             case (name, items) => {
               if (items.size == 1) {
                 items
@@ -87,7 +87,6 @@ class BrowseController @Inject() (
               }
             }
           }
-          .flatten
 
         val items = (folderItems ++ assetItems).sortWith(_.name.toLowerCase < _.name.toLowerCase)
         implicit val _buckets = buckets

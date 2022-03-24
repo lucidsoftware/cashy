@@ -167,7 +167,7 @@ class UploadController @Inject() (
       Action { implicit request =>
         val filledForm =
           uploadForm.fill(
-            UploadFormSubmission(bucket.getOrElse(null), path.getOrElse(null), assetURL = assetURL)
+            UploadFormSubmission(bucket.orNull, path.orNull, assetURL = assetURL)
           )
 
         Ok(views.html.upload.index(filledForm))

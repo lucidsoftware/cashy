@@ -137,20 +137,9 @@ class S3Sync @Inject() (
     // Check to make sure every .gz version in s3 has a non .gz version
     val s3GzOnly = allS3Assets
       .groupBy(a => a.key.stripSuffix(".gz"))
-      .map {
-        case (name, items) => {
-          if (items.size == 1) {
-            if (items(0).key.endsWith(".gz")) {
-              items
-            } else {
-              List()
-            }
-          } else {
-            List()
-          }
-        }
+      .collect {
+        case (name, List(item)) if item.key.endsWith(".gz") => item
       }
-      .flatten
 
     if (!s3GzOnly.isEmpty) {
 
