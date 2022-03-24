@@ -47,7 +47,7 @@ class KrakenClient @Inject() (configuration: Configuration) {
         "url" -> sourceUrl
       )
 
-      val krakenUrl = uploadToKraken(Json.stringify(authenticatedJson(Some(resizeParams))))
+      val krakenUrl = uploadToKraken(resizeParams)
       DownloadHelper.download(krakenUrl).bytes
     } else {
       throw KrakenDisabledException()
@@ -67,7 +67,7 @@ class KrakenClient @Inject() (configuration: Configuration) {
         "url" -> sourceUrl
       )
 
-      val krakenUrl = uploadToKraken(Json.stringify(authenticatedJson(Some(resizeParams))))
+      val krakenUrl = uploadToKraken(resizeParams)
       DownloadHelper.download(krakenUrl).bytes
     } else {
       throw KrakenDisabledException()
@@ -135,11 +135,12 @@ class KrakenClient @Inject() (configuration: Configuration) {
   }
 
   /**
-    * @param json the stringified json for the kraken upload request
+    * @param params the paramaters as a json object
     * @return the string URL of the krakened image
     */
-  private def uploadToKraken(json: String): String = {
+  private def uploadToKraken(params: JsObject): String = {
     val httpClient = HttpClientBuilder.create().build()
+    val json = Json.stringify(authenticatedJson(Some(params)))
 
     try {
       val httpPost = new HttpPost(uploadUrl)

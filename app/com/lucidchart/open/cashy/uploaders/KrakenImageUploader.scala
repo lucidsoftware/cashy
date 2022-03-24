@@ -30,7 +30,7 @@ class KrakenImageUploader @Inject() (krakenClient: KrakenClient, components: Upl
 
       // Upload it to S3
       val asset = uploadAndAudit(resizedBytes, bucket, assetName, contentType, user)
-      uploadedAssets += "${resizeWidth}x${resizeHeight}" -> asset
+      uploadedAssets += s"${resizeWidth}x${resizeHeight}" -> asset
 
       // If retina option is checked
       if (data.uploadRetina) {
