@@ -22,4 +22,4 @@ jobs:
           distribution: temurin
           java-version: ${{ matrix.jdk_version }}
       - name: Build
-        run: sbt -v +compile
+        run: sbt -v +compile debian:packageBin
