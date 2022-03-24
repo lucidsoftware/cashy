@@ -22,7 +22,8 @@
   <div class="row">
     <h2>Upload Assets</h2>
     <div class="well col-xs-6">
-      @helper.form(action=cashyRoutes.UploadController.uploadToS3, Symbol("id") -> "uploadForm", (Symbol("enctype") -> "multipart/form-data")) {
+      @form(action=cashyRoutes.UploadController.uploadToS3, Symbol("id") -> "uploadForm", (Symbol("enctype") -> "multipart/form-data")) {
+        @CSRF.formField
         <fieldset>
           @helper.select(uploadForm("bucket"), buckets.names.map(b => b -> b).toSeq, Symbol("id") -> "bucket", Symbol("_label") -> "Bucket", Symbol("_showConstraints") -> false)
           @defining(request.queryString.get("assetURL")) { url =>
