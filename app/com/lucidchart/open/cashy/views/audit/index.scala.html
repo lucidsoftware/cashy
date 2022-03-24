@@ -5,7 +5,7 @@
 @(auditPage: AuditPage)(
   implicit request: play.api.mvc.Request[_],
   user: User,
-  buckets: Set[String],
+  buckets: com.lucidchart.open.cashy.config.Buckets,
   messages: play.api.i18n.Messages
 )
 

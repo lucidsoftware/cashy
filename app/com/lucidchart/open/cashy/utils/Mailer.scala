@@ -1,53 +1,55 @@
 package com.lucidchart.open.cashy.utils
 
+import javax.inject.Inject
 import org.apache.commons.mail.HtmlEmail
-import play.api.Play.configuration
-import play.api.Play.current
-import play.api.Logger
+import play.api.{Configuration, Logger}
 
 case class MailerSMTPConfiguration(
-  host: String,
-  port: Int,
-  user: String,
-  pass: String
+    host: String,
+    port: Int,
+    user: String,
+    pass: String
 )
 
 case class MailerAddress(
-  email: String,
-  name: String = ""
+    email: String,
+    name: String = ""
 )
 
 case class MailerMessage(
-  from: MailerAddress,
-  reply: Option[MailerAddress] = None,
-  to: Iterable[MailerAddress],
-  cc: Iterable[MailerAddress] = Nil,
-  bcc: Iterable[MailerAddress] = Nil,
-  subject: String,
-  text: String
+    from: MailerAddress,
+    reply: Option[MailerAddress] = None,
+    to: Iterable[MailerAddress],
+    cc: Iterable[MailerAddress] = Nil,
+    bcc: Iterable[MailerAddress] = Nil,
+    subject: String,
+    text: String
 )
 
-object Mailer {
-  private val enabled = configuration.getBoolean("mailer.enabled").get
+class Mailer @Inject() (configuration: Configuration) {
+  private[this] val logger = Logger(this.getClass)
+
+  private val enabled = configuration.get[Boolean]("mailer.enabled")
   private val smtpConfig = MailerSMTPConfiguration(
-    configuration.getString("mailer.smtp.host").get,
-    configuration.getInt("mailer.smtp.port").get,
-    configuration.getString("mailer.smtp.user").get,
-    configuration.getString("mailer.smtp.pass").get
+    configuration.get[String]("mailer.smtp.host"),
+    configuration.get[Int]("mailer.smtp.port"),
+    configuration.get[String]("mailer.smtp.user"),
+    configuration.get[String]("mailer.smtp.pass")
   )
 
   /**
-   * Send an email message
-   *
+    * Send an email message
+    *
    * Throws any and all exceptions
-   *
+    *
    * @param message Details about the message to send
-   */
-  def send(message: MailerMessage) {
+    */
+  def send(message: MailerMessage): Unit = {
     if (!enabled) {
-      Logger.info("Not sending email to " + message.to + " with subject '" + message.subject + "' because the mailer is disabled.")
-    }
-    else {
+      logger.info(
+        "Not sending email to " + message.to + " with subject '" + message.subject + "' because the mailer is disabled."
+      )
+    } else {
       val email = new HtmlEmail()
 
       email.setSmtpPort(smtpConfig.port)

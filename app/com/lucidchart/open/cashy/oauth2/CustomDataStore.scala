@@ -1,20 +1,20 @@
 package com.lucidchart.open.cashy.oauth2
 
+import javax.inject.Inject
 import com.google.api.client.util.store.{DataStoreFactory, AbstractDataStore, DataStore}
 import com.google.api.client.auth.oauth2.StoredCredential
 import com.google.api.client.http.GenericUrl
 import com.google.api.client.http.javanet.NetHttpTransport
-import com.google.api.client.json.jackson2.JacksonFactory
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 import com.lucidchart.open.cashy.models.StoredCredentialModel
 
-object CustomDataStore extends CustomDataStore
-class CustomDataStore extends DataStore[StoredCredential] {
+class CustomDataStore @Inject() (storedCredentialModel: StoredCredentialModel)
+    extends DataStore[StoredCredential] {
 
   def clear = {
-    StoredCredentialModel.clearCredentials()
-    CustomDataStore
+    storedCredentialModel.clearCredentials()
+    this
   }
 
   def containsKey(key: String): Boolean = {
@@ -22,16 +22,16 @@ class CustomDataStore extends DataStore[StoredCredential] {
   }
 
   def containsValue(value: StoredCredential): Boolean = {
-    StoredCredentialModel.containsValue(value)
+    storedCredentialModel.containsValue(value)
   }
 
   def delete(key: String) = {
-    StoredCredentialModel.deleteKey(key)
-    CustomDataStore
+    storedCredentialModel.deleteKey(key)
+    this
   }
 
   def get(key: String): StoredCredential = {
-    StoredCredentialModel.getByKey(key).getOrElse(null)
+    storedCredentialModel.getByKey(key).getOrElse(null)
   }
 
   // Returns the factory used to create the data store
@@ -49,20 +49,20 @@ class CustomDataStore extends DataStore[StoredCredential] {
   }
 
   def keySet() = {
-    StoredCredentialModel.getAllKeys().asJava
+    storedCredentialModel.getAllKeys().asJava
   }
 
   def set(key: String, value: StoredCredential) = {
-    StoredCredentialModel.setCredential(key, value)
-    CustomDataStore
+    storedCredentialModel.setCredential(key, value)
+    this
   }
 
   def size(): Int = {
-    StoredCredentialModel.getSize()
+    storedCredentialModel.getSize()
   }
 
   def values() = {
-    StoredCredentialModel.getAllValues().asJava
+    storedCredentialModel.getAllValues().asJava
   }
 
 }

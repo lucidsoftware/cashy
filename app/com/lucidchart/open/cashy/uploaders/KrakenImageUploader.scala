@@ -1,23 +1,26 @@
 package com.lucidchart.open.cashy.uploaders
 
-import com.lucidchart.open.cashy.amazons3.S3Client
-import com.lucidchart.open.cashy.models.{Asset, User, AssetModel}
+import javax.inject.Inject
+import com.lucidchart.open.cashy.models.{Asset, User}
 import com.lucidchart.open.cashy.utils.{DownloadHelper, KrakenClient}
 
-import scala.collection.mutable.MutableList
+class KrakenImageUploader @Inject() (krakenClient: KrakenClient, components: UploaderComponents)
+    extends Uploader(components) {
 
-object KrakenImageUploader extends KrakenImageUploader
-class KrakenImageUploader extends Uploader {
-
-  override def upload(bytes: Array[Byte], contentType: Option[String], user: User, data: UploadFormSubmission): UploadResult = {
+  override def upload(
+      bytes: Array[Byte],
+      contentType: Option[String],
+      user: User,
+      data: UploadFormSubmission
+  ): UploadResult = {
     val bucket = data.bucket
     val assetName = data.assetName
-    val uploadedAssets = MutableList[Tuple2[String,Asset]]()
-    val existingAssets = MutableList[Tuple2[String,Asset]]()
+    val uploadedAssets = List.newBuilder[(String, Asset)]
+    val existingAssets = List.newBuilder[(String, Asset)]
 
-    val extension = getExtension(assetName)
+    val extension = extensionsConfig.getExtension(assetName)
     // If the image is resized
-    val asset = if(data.resizeImage) {
+    val asset = if (data.resizeImage) {
 
       val resizeWidth = data.imageWidth.get
       val resizeHeight = data.imageHeight.get
@@ -27,20 +30,20 @@ class KrakenImageUploader extends Uploader {
 
       // Upload it to S3
       val asset = uploadAndAudit(resizedBytes, bucket, assetName, contentType, user)
-      uploadedAssets += ((resizeWidth + "x" + resizeHeight, asset))
+      uploadedAssets += s"${resizeWidth}x${resizeHeight}" -> asset
 
       // If retina option is checked
-      if(data.uploadRetina) {
+      if (data.uploadRetina) {
         val retinaName = data.assetRetinaName.get
 
         // Check if @2x name is taken
-        if(!S3Client.existsInS3(bucket, retinaName)) {
+        if (!s3Client.existsInS3(bucket, retinaName)) {
           val tempUrl = tempUpload(bucket, bytes, contentType, extension)
 
           // Send the resize request to Kraken
           val retinaWidth = resizeWidth * 2
           val retinaHeight = resizeHeight * 2
-          val retinaBytes = KrakenClient.resizeImage(tempUrl, retinaWidth, retinaHeight)
+          val retinaBytes = krakenClient.resizeImage(tempUrl, retinaWidth, retinaHeight)
 
           // Upload to S3
           val retinaAsset = uploadAndAudit(retinaBytes, bucket, retinaName, contentType, user)
@@ -48,7 +51,7 @@ class KrakenImageUploader extends Uploader {
 
         } else {
           // Get that asset and return it
-          val retinaAsset = AssetModel.findByKey(bucket, retinaName).get
+          val retinaAsset = assetModel.findByKey(bucket, retinaName).get
           existingAssets += (("Retina", retinaAsset))
         }
       }
@@ -56,7 +59,7 @@ class KrakenImageUploader extends Uploader {
     } else {
 
       val tempUrl = tempUpload(bucket, bytes, contentType, extension)
-      val compressedBytes = KrakenClient.compressImage(tempUrl)
+      val compressedBytes = krakenClient.compressImage(tempUrl)
 
       // upload to s3
       val asset = uploadAndAudit(compressedBytes, bucket, assetName, contentType, user)
@@ -65,20 +68,25 @@ class KrakenImageUploader extends Uploader {
     }
 
     UploadResult(
-      uploadedAssets.toList,
-      existingAssets.toList,
+      uploadedAssets.result(),
+      existingAssets.result(),
       asset.bucket,
       asset.parent
     )
   }
 
   // Uploads an object to the temp location with a random name
-  private def tempUpload(bucket: String, bytes: Array[Byte], contentType: Option[String], extension: String): String = {
+  private def tempUpload(
+      bucket: String,
+      bytes: Array[Byte],
+      contentType: Option[String],
+      extension: String
+  ): String = {
     // Generate a name for the temp file
     val tempName = java.util.UUID.randomUUID.toString + "." + extension
 
     // Upload the original file to the temp location for kraken
-    S3Client.uploadTempFile(bucket, tempName, bytes, contentType)
+    s3Client.uploadTempFile(bucket, tempName, bytes, contentType)
   }
 
 }

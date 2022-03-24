@@ -1,28 +1,26 @@
 package com.lucidchart.open.cashy.oauth2
 
+import javax.inject.Inject
 import com.google.api.client.auth.oauth2._
 import com.google.api.client.http.GenericUrl
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
-import com.google.api.client.googleapis.auth.oauth2._
-import play.api.Play.current
-import play.api.Play.configuration
+import play.api.Configuration
 import play.api.libs.json._
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.io.Source
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClientBuilder
 
 case class GoogleUser(id: String, email: String)
 
-object GoogleClient extends GoogleClient
-class GoogleClient {
+class GoogleClient @Inject() (customDataStore: CustomDataStore, configuration: Configuration) {
 
-  val googleClientId = configuration.getString("auth.google.clientId").get
-  val googleSecret = configuration.getString("auth.google.secret").get
-  val googleOauthEndpoint = configuration.getString("auth.google.oauthEndpoint").get
-  val googleTokenEndpoint = configuration.getString("auth.google.tokenEndpoint").get
-  val googleTokenInfoEndpoint = configuration.getString("auth.google.tokenInfoEndpoint").get
+  val googleClientId = configuration.get[String]("auth.google.clientId")
+  val googleSecret = configuration.get[String]("auth.google.secret")
+  val googleOauthEndpoint = configuration.get[String]("auth.google.oauthEndpoint")
+  val googleTokenEndpoint = configuration.get[String]("auth.google.tokenEndpoint")
+  val googleTokenInfoEndpoint = configuration.get[String]("auth.google.tokenInfoEndpoint")
 
   private val authFlow = new AuthorizationCodeFlow.Builder(
     BearerToken.authorizationHeaderAccessMethod,
@@ -32,9 +30,8 @@ class GoogleClient {
     new ClientParametersAuthentication(googleClientId, googleSecret),
     googleClientId,
     googleOauthEndpoint
-    )
-    .setCredentialDataStore(CustomDataStore)
-    .setScopes(List("email","profile").asJava)
+  ).setCredentialDataStore(customDataStore)
+    .setScopes(List("email", "profile").asJava)
     .build()
 
   def isAuthorized(userId: Long): Boolean = {
@@ -46,12 +43,13 @@ class GoogleClient {
   }
 
   def requestToken(authorizationCode: String, redirectUri: String) = {
-    authFlow.newTokenRequest(authorizationCode)
+    authFlow
+      .newTokenRequest(authorizationCode)
       .setRedirectUri(redirectUri)
       .execute()
   }
 
-  def setCredential(tokenResponse: TokenResponse, userId: Long) {
+  def setCredential(tokenResponse: TokenResponse, userId: Long): Unit = {
     authFlow.createAndStoreCredential(tokenResponse, userId.toString)
   }
 
@@ -85,8 +83,8 @@ class GoogleClient {
     }
   }
 
-  def deleteCredential(key: String) {
-    CustomDataStore.delete(key)
+  def deleteCredential(key: String): Unit = {
+    customDataStore.delete(key)
   }
 
 }

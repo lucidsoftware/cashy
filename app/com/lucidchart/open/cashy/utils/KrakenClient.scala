@@ -1,9 +1,9 @@
 package com.lucidchart.open.cashy.utils
 
+import javax.inject.Inject
 import org.apache.http.client.config.RequestConfig
 import play.api.Logger
-import play.api.Play.current
-import play.api.Play.configuration
+import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.libs.json.{JsObject, JsValue, JsBoolean, JsNumber}
 import org.apache.http.client.methods.{HttpGet, HttpPost}
@@ -14,27 +14,26 @@ import scala.io.Source
 case class KrakenDisabledException() extends Exception("Kraken has been disabled")
 case class KrakenFailedException(message: String) extends Exception(message)
 
-object KrakenClient extends KrakenClient
-class KrakenClient {
+class KrakenClient @Inject() (configuration: Configuration) {
   val logger = Logger(this.getClass)
 
-  protected val enabled = configuration.getBoolean("kraken.enabled").getOrElse(false)
-  protected val apiKey = configuration.getString("kraken.apiKey").get
-  protected val apiSecret = configuration.getString("kraken.apiSecret").get
-  protected val uploadUrl = configuration.getString("kraken.imageUploadUrl").get
-  protected val usageUrl = configuration.getString("kraken.usageUrl").get
-  protected val connectionRequestTimeout = configuration.getInt("kraken.connectionRequestTimeoutMs").get
-  protected val connectTimeout = configuration.getInt("kraken.connectTimeoutMs").get
-  protected val socketTimeout = configuration.getInt("kraken.socketTimeoutMs").get
+  protected val enabled = configuration.getOptional[Boolean]("kraken.enabled").getOrElse(false)
+  protected val apiKey = configuration.get[String]("kraken.apiKey")
+  protected val apiSecret = configuration.get[String]("kraken.apiSecret")
+  protected val uploadUrl = configuration.get[String]("kraken.imageUploadUrl")
+  protected val usageUrl = configuration.get[String]("kraken.usageUrl")
+  protected val connectionRequestTimeout = configuration.get[Int]("kraken.connectionRequestTimeoutMs")
+  protected val connectTimeout = configuration.get[Int]("kraken.connectTimeoutMs")
+  protected val socketTimeout = configuration.get[Int]("kraken.socketTimeoutMs")
 
   /**
-   * @param sourceUrl the string url of the image that will be resized
-   * @param width the width in pixels for the resized image
-   * @param height the height in pixels for the resized image
-   * @return the bytes of the resized image
-   */
+    * @param sourceUrl the string url of the image that will be resized
+    * @param width the width in pixels for the resized image
+    * @param height the height in pixels for the resized image
+    * @return the bytes of the resized image
+    */
   def resizeImage(sourceUrl: String, width: Int, height: Int): Array[Byte] = {
-    if(enabled) {
+    if (enabled) {
 
       val resizeParams = Json.obj(
         "resize" ->
@@ -48,7 +47,7 @@ class KrakenClient {
         "url" -> sourceUrl
       )
 
-      val krakenUrl = uploadToKraken(Json.stringify(authenticatedJson(Some(resizeParams))))
+      val krakenUrl = uploadToKraken(resizeParams)
       DownloadHelper.download(krakenUrl).bytes
     } else {
       throw KrakenDisabledException()
@@ -56,11 +55,11 @@ class KrakenClient {
   }
 
   /**
-   * @param sourceUrl the string url of the image that will be compressed
-   * @return the bytes of the compressed image
-   */
+    * @param sourceUrl the string url of the image that will be compressed
+    * @return the bytes of the compressed image
+    */
   def compressImage(sourceUrl: String): Array[Byte] = {
-    if(enabled) {
+    if (enabled) {
 
       val resizeParams = Json.obj(
         "wait" -> JsBoolean(true),
@@ -68,7 +67,7 @@ class KrakenClient {
         "url" -> sourceUrl
       )
 
-      val krakenUrl = uploadToKraken(Json.stringify(authenticatedJson(Some(resizeParams))))
+      val krakenUrl = uploadToKraken(resizeParams)
       DownloadHelper.download(krakenUrl).bytes
     } else {
       throw KrakenDisabledException()
@@ -76,8 +75,8 @@ class KrakenClient {
   }
 
   /**
-   * @return the ratio of quota used if it was available, or None
-   */
+    * @return the ratio of quota used if it was available, or None
+    */
   def checkQuota(): Option[Double] = {
     val httpClient = HttpClientBuilder.create().build()
 
@@ -101,7 +100,7 @@ class KrakenClient {
             val used = (responseJson \ "quota_used").asOpt[Double]
             val total = (responseJson \ "quota_total").asOpt[Double]
             for (usedVal <- used; totalVal <- total) yield {
-              usedVal/totalVal
+              usedVal / totalVal
             }
           } else {
             None
@@ -116,16 +115,16 @@ class KrakenClient {
   }
 
   /**
-   * @param data optional JsObject to include with the auth data
-   * @return the JsValue including auth data
-   */
+    * @param data optional JsObject to include with the auth data
+    * @return the JsValue including auth data
+    */
   private def authenticatedJson(data: Option[JsObject] = None): JsValue = {
     val authData = Json.obj(
-        "auth" -> Json.obj(
-          "api_key" -> apiKey,
-          "api_secret" -> apiSecret
-        )
+      "auth" -> Json.obj(
+        "api_key" -> apiKey,
+        "api_secret" -> apiSecret
       )
+    )
     val fullData = data match {
       case None => authData
       case Some(data) =>
@@ -136,11 +135,12 @@ class KrakenClient {
   }
 
   /**
-   * @param json the stringified json for the kraken upload request
-   * @return the string URL of the krakened image
-   */
-  private def uploadToKraken(json: String): String = {
+    * @param params the paramaters as a json object
+    * @return the string URL of the krakened image
+    */
+  private def uploadToKraken(params: JsObject): String = {
     val httpClient = HttpClientBuilder.create().build()
+    val json = Json.stringify(authenticatedJson(Some(params)))
 
     try {
       val httpPost = new HttpPost(uploadUrl)
@@ -156,7 +156,7 @@ class KrakenClient {
           val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
           val responseJson = Json.parse(responseBody)
           val message = (responseJson \ "message").asOpt[String].getOrElse("Unknown error")
-          throw new KrakenFailedException(response.getStatusLine().getStatusCode() + " [Kraken]: " + message)
+          throw new KrakenFailedException(s"${response.getStatusLine().getStatusCode()} [Kraken]: ${message}")
         } else {
           val responseBody = Source.fromInputStream(response.getEntity().getContent()).mkString
           val responseJson = Json.parse(responseBody)
@@ -177,7 +177,8 @@ class KrakenClient {
   }
 
   private def getRequestConfig = {
-    RequestConfig.custom()
+    RequestConfig
+      .custom()
       .setConnectionRequestTimeout(connectionRequestTimeout)
       .setConnectTimeout(connectTimeout)
       .setSocketTimeout(socketTimeout)

@@ -3,27 +3,28 @@ import scala.sys.process.stringToProcess
 enablePlugins(PlayScala)
 
 name := "Cashy"
+version := "0.0.1." + "git rev-parse --short HEAD".!!.trim + ".SNAPSHOT"
 
 libraryDependencies ++= Seq(
   jdbc,
-  "com.google.oauth-client" % "google-oauth-client-java6" % "1.18.0-rc",
-  "com.google.http-client" % "google-http-client" % "1.18.0-rc",
-  "com.google.http-client" % "google-http-client-jackson2" % "1.18.0-rc",
-  "com.google.api-client" % "google-api-client" % "1.18.0-rc",
-  "com.lucidchart" %% "relate" % "1.7.1",
-  "mysql" % "mysql-connector-java" % "5.1.23",
-  "org.apache.httpcomponents" % "httpclient" % "4.3.6",
-  "org.apache.commons" % "commons-email" % "1.3.3",
+  evolutions,
+  guice,
+  "com.google.inject" % "guice" % "5.0.1",
+  "com.google.oauth-client" % "google-oauth-client" % "1.30.4",
+  "com.google.http-client" % "google-http-client-jackson2" % "1.32.1",
+  "com.lucidchart" %% "relate" % "3.0.0",
+  "mysql" % "mysql-connector-java" % "8.0.28",
+  "org.apache.httpcomponents" % "httpclient" % "4.5.13",
+  "org.apache.commons" % "commons-email" % "1.5",
   "com.yahoo.platform.yui" % "yuicompressor" % "2.4.8",
-  "com.amazonaws" % "aws-java-sdk-s3" % "1.11.678"
+  "software.amazon.awssdk" % "s3" % "2.17.152",
 )
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.13.6"
 scalacOptions ++= Seq("-feature", "-deprecation", "-Xfatal-warnings")
+
 resolvers ++= List(
-  "google-api-services" at "https://google-api-client-libraries.appspot.com/mavenrepo"
+  "google-api-services" at "https://google-api-client-libraries.appspot.com/mavenrepo",
 )
-routesGenerator := InjectedRoutesGenerator
-version := "0.0.1." + "git rev-parse --short HEAD".!!.trim + ".SNAPSHOT"
 
 routesGenerator := InjectedRoutesGenerator

@@ -1,25 +1,27 @@
 package com.lucidchart.open.cashy.utils
 
-// COde modified from http://stackoverflow.com/questions/15036121/pulling-files-from-multipartformdata-in-memory-in-play2-scala
-
-import play.core.parsers.Multipart.{handleFilePart, PartHandler, FileInfo}
+import akka.stream.scaladsl.Sink
+import akka.util.ByteString
+import play.core.parsers.Multipart.{FilePartHandler, FileInfo}
 import play.api.mvc.MultipartFormData.FilePart
-import play.api.libs.iteratee.Iteratee
 import java.io.ByteArrayOutputStream
 import play.api.mvc.BodyParser
-import scala.concurrent.ExecutionContext.Implicits.global
+import play.api.libs.streams.Accumulator
+import scala.concurrent.ExecutionContext
 
 object FileHandler extends FileHandler
 class FileHandler {
-	def handleFilePartAsByteArray: PartHandler[FilePart[Array[Byte]]] = handleFilePart {
-		case FileInfo(partName, filename, contentType) =>
-			Iteratee.fold[Array[Byte], ByteArrayOutputStream](
-				new ByteArrayOutputStream()) { (os, data) =>
-				  os.write(data)
-				  os
-				}.map { os =>
-				  os.close()
-				  os.toByteArray
-				}
-	}
+  def handleFilePartAsByteArray(implicit ec: ExecutionContext): FilePartHandler[Array[Byte]] =
+    (info: FileInfo) =>
+      Accumulator(Sink.reduce[ByteString](_ ++ _)).map { bytes =>
+        val byteArray: Array[Byte] = bytes.toArray
+        new FilePart(
+          info.partName,
+          info.fileName,
+          info.contentType,
+          byteArray,
+          byteArray.length,
+          info.dispositionType
+        )
+      }
 }
