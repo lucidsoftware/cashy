@@ -141,7 +141,7 @@ class BrowseController @Inject() (
           cashyAsset.map(_.hidden).getOrElse(false)
         )
 
-        Ok(Json.stringify(Json.toJson(item))).withHeaders("Content-Type" -> "application/json")
+        Ok(Json.toJson(item))
       }
     }
 
@@ -180,8 +180,8 @@ class BrowseController @Inject() (
         } catch {
           case e: Exception => {
             logger.error("Exception when creating folder", e)
-            val json = Json.stringify(Json.toJson(Map("error" -> e.getMessage)))
-            Ok(json).withHeaders("Content-Type" -> "application/json")
+            val json = Json.toJson(Map("error" -> e.getMessage))
+            Ok(json)
           }
         }
       }
@@ -220,8 +220,8 @@ class BrowseController @Inject() (
         } catch {
           case e: Exception => {
             logger.error("Exception when hiding item", e)
-            val json = Json.stringify(Json.toJson(Map("error" -> e.getMessage)))
-            Ok(json).withHeaders("Content-Type" -> "application/json")
+            val json = Json.toJson(Map("error" -> e.getMessage))
+            Ok(json)
           }
         }
       }

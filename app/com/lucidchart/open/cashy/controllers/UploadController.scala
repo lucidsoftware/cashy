@@ -259,14 +259,14 @@ class UploadController @Inject() (
                   s3Client.uploadTempFile(data.bucket, resizeName, krakenBytes, assetData.contentType)
 
                 // Return with url to the resized asset
-                val json = Json.stringify(Json.toJson(Map("resizedUrl" -> resizedUrl)))
-                Ok(json).withHeaders("Content-Type" -> "application/json")
+                val json = Json.toJson(Map("resizedUrl" -> resizedUrl))
+                Ok(json)
               }
             )
         } catch {
           case e: Exception => {
-            val json = Json.stringify(Json.toJson(Map("error" -> e.getMessage)))
-            Ok(json).withHeaders("Content-Type" -> "application/json")
+            val json = Json.toJson(Map("error" -> e.getMessage))
+            Ok(json)
           }
         }
       }
@@ -297,11 +297,11 @@ class UploadController @Inject() (
           }
 
         val json = if (response.size == 0) {
-          Json.stringify(Json.obj("success" -> true))
+          Json.obj("success" -> true)
         } else {
-          Json.stringify(Json.toJson(response.groupBy(_._1).view.mapValues(_.map(_._2))))
+          Json.toJson(response.groupBy(_._1).view.mapValues(_.map(_._2)))
         }
-        Ok(json).withHeaders("Content-Type" -> "application/json")
+        Ok(json)
       }
     }
 
