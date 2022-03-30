@@ -1,10 +1,12 @@
 import scala.sys.process.stringToProcess
 
 enablePlugins(PlayScala)
+enablePlugins(SystemdPlugin)
 
 name := "Cashy"
 version := "0.0.1." + "git rev-parse --short HEAD".!!.trim + ".SNAPSHOT"
 
+maintainer := "Lucid Software"
 libraryDependencies ++= Seq(
   jdbc,
   evolutions,
