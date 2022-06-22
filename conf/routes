@@ -11,7 +11,6 @@ GET     /oauth2callback                      com.lucidchart.open.cashy.controlle
 # Uploading
 GET     /upload                              com.lucidchart.open.cashy.controllers.UploadController.index(bucket: Option[String] ?= None, path: Option[String] ?= None, assetURL: Option[String] ?= None)
 POST    /uploadToS3                          com.lucidchart.open.cashy.controllers.UploadController.uploadToS3
-POST    /krakenPreview                       com.lucidchart.open.cashy.controllers.UploadController.krakenPreview
 POST    /upload/validate                    com.lucidchart.open.cashy.controllers.UploadController.validate
 
 # Browsing
