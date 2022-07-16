@@ -4,30 +4,28 @@ import com.google.inject.AbstractModule
 
 import com.lucidchart.open.cashy.models.{AssetModel, AuditModel}
 import com.lucidchart.open.cashy.config.Buckets
-import com.lucidchart.open.cashy.utils.{Mailer, MailerAddress, MailerMessage, KrakenClient}
+import com.lucidchart.open.cashy.utils.{Mailer, MailerAddress, MailerMessage}
 
-import akka.actor.{Actor, ActorRef, Props, ActorSystem}
+import akka.actor.{Actor, ActorSystem, Props}
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
-import play.api.libs.concurrent.Akka
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 case class S3SyncAsset(
-    key: String,
-    date: Instant
+  key: String,
+  date: Instant,
 )
 
 @Singleton
 class S3Sync @Inject() (
-    assetModel: AssetModel,
-    auditModel: AuditModel,
-    mailer: Mailer,
-    s3Client: S3Client,
-    krakenClient: KrakenClient,
-    buckets: Buckets,
-    configuration: Configuration
+  assetModel: AssetModel,
+  auditModel: AuditModel,
+  mailer: Mailer,
+  s3Client: S3Client,
+  buckets: Buckets,
+  configuration: Configuration,
 )(implicit ec: ExecutionContext) {
 
   val akkaCashySystem: ActorSystem =
@@ -37,7 +35,6 @@ class S3Sync @Inject() (
   private val alertEmail = configuration.get[String]("mailer.alertEmail")
   private val fromEmail = configuration.get[String]("mailer.fromEmail")
   private val tempUploadPrefix = configuration.get[String]("amazon.s3.tempUploadPrefix")
-  private val krakenEnabled = configuration.getOptional[Boolean]("kraken.enabled").getOrElse(false)
 
   private[this] def schedule(): Unit = {
     val assetSync = akkaCashySystem.actorOf(Props(new AssetSynchronizer(this)))
@@ -45,15 +42,15 @@ class S3Sync @Inject() (
       0.seconds,
       syncFrequency.seconds,
       assetSync,
-      "sync"
+      "sync",
     )(ec)
   }
 
   schedule() // schedule once it is created
 
   /**
-    * Checks the data in amazon s3 against our asset database, updating the asset db as necessary
-    */
+   * Checks the data in amazon s3 against our asset database, updating the asset db as necessary
+   */
   private def sync(): Unit = {
 
     buckets.names.map { bucket =>
@@ -62,39 +59,10 @@ class S3Sync @Inject() (
       val nonTempAssets =
         deleteTempAssets(
           bucket,
-          allS3Assets
+          allS3Assets,
         ) // Do this first or else they will get uploaded and then deleted every sync
       checkChangedAssets(bucket, nonTempAssets)
       checkS3GzAssets(bucket, nonTempAssets)
-    }
-
-    if (krakenEnabled) {
-      checkKrakenQuota()
-    }
-  }
-
-  private def checkKrakenQuota(): Unit = {
-    val usageThreshold = configuration.get[Double]("kraken.usageAlertThreshold")
-    val usage = krakenClient.checkQuota()
-    if (usage.exists(_ > usageThreshold)) {
-      // Send an email to alert
-      val fromAddress = MailerAddress(fromEmail)
-      val toAddress = MailerAddress(alertEmail)
-
-      val emailText =
-        s"Kraken quota is at ${usage.get}.  Consider upgrading the plan temporarily or disabling kraken until it cycles"
-
-      val message = MailerMessage(
-        fromAddress,
-        None,
-        List(toAddress),
-        Nil,
-        Nil,
-        "[Cashy] Kraken quota almost reached",
-        emailText
-      )
-
-      mailer.send(message)
     }
   }
 
@@ -128,7 +96,7 @@ class S3Sync @Inject() (
         bucket,
         s3Asset.key,
         buckets.cloudfrontUrl(bucket) + s3Asset.key,
-        hasGzip
+        hasGzip,
       )
     }
   }
@@ -158,7 +126,7 @@ class S3Sync @Inject() (
         Nil,
         Nil,
         "[Cashy] Amazon S3 Gzip Inconsistency",
-        emailText
+        emailText,
       )
 
       mailer.send(message)
@@ -167,8 +135,8 @@ class S3Sync @Inject() (
   }
 
   /**
-    * A simple Actor that synchronizes cashy's database with S3
-    */
+   * A simple Actor that synchronizes cashy's database with S3
+   */
   private class AssetSynchronizer(synchronizer: S3Sync) extends Actor {
     def receive = {
       case "sync" => {
