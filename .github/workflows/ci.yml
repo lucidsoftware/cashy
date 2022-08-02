@@ -21,5 +21,19 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ matrix.jdk_version }}
+      - name: Set Env
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          fi
       - name: Build
-        run: sbt -v +compile debian:packageBin
+        run: sbt -v +compile Debian/packageBin
+      - name: Upload assets to Github
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -x
+          sbt Universal/packageBin
+          args=$(printf -- "-a %q " target/*.deb
+          hub release create -a "target/Cashy_$VERSION_all.deb" -a "target/universal/cashy-$VERSION.zip" "Release $VERSION"

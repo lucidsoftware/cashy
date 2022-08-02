@@ -4,7 +4,7 @@ enablePlugins(PlayScala)
 enablePlugins(SystemdPlugin)
 
 name := "Cashy"
-version := "0.0.1." + "git rev-parse --short HEAD".!!.trim + ".SNAPSHOT"
+version := sys.env.get("VERSION").getOrElse("0.0.1." + "git rev-parse --short HEAD".!!.trim + ".SNAPSHOT")
 
 maintainer := "Lucid Software"
 libraryDependencies ++= Seq(
