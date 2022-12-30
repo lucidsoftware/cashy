@@ -8,7 +8,6 @@ Cashy is a write-once static asset manager for Amazon S3.
 * Allows for browsing the S3 bucket
 * Allows for folder creation
 * Allows for uploading of assets
-* Automatically create retina versions of resized images
 * Minify and lightly optimize javascript using YUI Compressor
 * Minify CSS using YUI Compressor
 * Allow for searching of assets added through Cashy
