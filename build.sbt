@@ -22,6 +22,17 @@ libraryDependencies ++= Seq(
   "software.amazon.awssdk" % "s3" % "2.17.152",
 )
 
+Debian/linuxPackageMappings ~= {
+  _.map { mapping =>
+    val filtered = mapping.mappings.filterNot {
+      case (_, name) => name.endsWith("overrides.conf")
+    }
+    mapping.copy(mappings = filtered)
+  }.filter {
+    _.mappings.nonEmpty
+  }
+}
+
 scalaVersion := "2.13.6"
 scalacOptions ++= Seq("-feature", "-deprecation", "-Xfatal-warnings")
 
