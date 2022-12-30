@@ -36,4 +36,4 @@ jobs:
           set -x
           sbt Universal/packageBin
           args=$(printf -- "-a %q " target/*.deb)
-          hub release create -m "$VERSION" -a "target/Cashy_${VERSION}_all.deb" -a "target/universal/cashy-$VERSION.zip" "Release $VERSION"
+          hub release create -m "$VERSION" -a "target/Cashy_${VERSION}_all.deb" -a "target/universal/cashy-$VERSION.zip" "$VERSION"
