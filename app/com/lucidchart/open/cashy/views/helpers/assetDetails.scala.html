@@ -18,7 +18,7 @@
           <div class="item-detail-label">S3 Key</div><div class="item-detail-value" id="@bucketName-itemKey"></div>
         </div>
         <div>
-          <div class="item-detail-label">Cloudfront Url</div><div class="item-detail-value"><a id="@bucketName-itemCloudrontUrl" href="" target="_blank"></a></div>
+          <div class="item-detail-label">Published Url</div><div class="item-detail-value"><a id="@bucketName-itemCloudrontUrl" href="" target="_blank"></a></div>
         </div>
         <div>
           <div class="item-detail-label">Created At</div><div class="item-detail-value" id="@bucketName-itemCreatedAt"></div>
@@ -64,7 +64,7 @@
         $('#@bucketName-itemName').text(data.name);
         $('#@bucketName-itemKey').text(data.key);
         $('#@bucketName-itemS3Url').text(data.s3Url).attr('href', data.s3Url);
-        $('#@bucketName-itemCloudrontUrl').text(data.cloudfrontUrl).attr('href', data.cloudfrontUrl);
+        $('#@bucketName-itemCloudrontUrl').text(data.url).attr('href', data.url);
         $('#@bucketName-itemCreatedAt').text(data.creationDate);
         $('#@bucketName-itemCreatedBy').text(data.creator);
         $('#@bucketName-itemETag').text(data.eTag);
@@ -74,7 +74,7 @@
         $('#@bucketName-itemGzipped').text(data.gzipped);
 
         var uploadUrl = "@cashyRoutes.UploadController.index(Some(bucketName))";
-        uploadUrl += "&path=" + data.key.substring(0,data.key.lastIndexOf("/")+1) + "&assetURL=" + data.cloudfrontUrl
+        uploadUrl += "&path=" + data.key.substring(0,data.key.lastIndexOf("/")+1) + "&assetURL=" + data.url
 
         $('#@bucketName-itemUploadAnotherVersion').attr('href', uploadUrl);
 
@@ -95,7 +95,7 @@
     $('#@bucketName-itemS3Url').show();
     $('a.show-s3-url').hide();
   });
-</script> 
+</script>
 
 <style>
   #@bucketName-itemName {

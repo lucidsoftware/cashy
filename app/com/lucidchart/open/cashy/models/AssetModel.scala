@@ -27,7 +27,7 @@ class AssetModel @Inject() (buckets: Buckets, configuration: Configuration, db: 
     val bucket = row.string("bucket")
     val key = row.string("key")
     Asset(
-      buckets.cloudfrontUrl(bucket) + key,
+      buckets.publicUrl(bucket) + key,
       bucket,
       key,
       row.long("user_id"),

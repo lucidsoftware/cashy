@@ -3,18 +3,17 @@ package com.lucidchart.open.cashy.config
 import javax.inject.Inject
 import play.api.Configuration
 
-class Buckets(bucketCloudfrontMap: Map[String, String]) {
+class Buckets(bucketUrlMap: Map[String, String]) {
   @Inject()
   def this(configuration: Configuration) =
     this(
       configuration
-        .get[Map[String, Configuration]]("amazon.s3.bucketCloudfrontMap")
-        .map { case (k, c) => (k -> c.get[String]("cloudfront")) }
+        .get[Map[String, String]]("amazon.s3.bucketUrlMap")
     )
 
-  def names = bucketCloudfrontMap.keySet
+  def names = bucketUrlMap.keySet
 
-  def cloudfrontUrl(bucket: String): String = bucketCloudfrontMap(bucket)
+  def publicUrl(bucket: String): String = bucketUrlMap(bucket)
 
-  def contains(name: String): Boolean = bucketCloudfrontMap.contains(name)
+  def contains(name: String): Boolean = bucketUrlMap.contains(name)
 }
