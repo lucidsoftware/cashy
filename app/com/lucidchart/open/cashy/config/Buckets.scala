@@ -3,19 +3,29 @@ package com.lucidchart.open.cashy.config
 import javax.inject.Inject
 import play.api.Configuration
 
-case class BucketConfig(cloudfrontId: String, bucketName: Option[String] = None)
+case class BucketConfig(publicUrl: String, bucketName: Option[String] = None)
 
 class Buckets(bucketConfigs: Map[String, BucketConfig]) {
   @Inject()
-  def this(configuration: Configuration) = this(
-    configuration.get[Map[String, Configuration]]("amazon.s3.bucketCloudfrontMap").map {
-      case (name, c) => name -> BucketConfig(c.get[String]("cloudfront"), c.getOptional[String]("bucketName"))
-    }
-  )
+  def this(configuration: Configuration) =
+    this(
+      configuration
+        .getOptional[Map[String, Configuration]]("buckets")
+        .map(_.map {
+          case (name, c) => name -> BucketConfig(c.get[String]("publicUrl"), c.getOptional[String]("bucketName"))
+        })
+        // Fall back to bucketCloudfrontMap for backwards compatibility
+        .getOrElse(
+          configuration.get[Map[String, Configuration]]("amazon.s3.bucketCloudfrontMap").map {
+            case (name, c) =>
+              name -> BucketConfig(c.get[String]("cloudfront"), c.getOptional[String]("bucketName"))
+          }
+        )
+    )
 
   def names = bucketConfigs.keySet
 
-  def cloudfrontUrl(bucket: String): String = bucketConfigs(bucket).cloudfrontId
+  def publicUrl(bucket: String): String = bucketConfigs(bucket).publicUrl
 
   def contains(name: String): Boolean = bucketConfigs.contains(name)
 
