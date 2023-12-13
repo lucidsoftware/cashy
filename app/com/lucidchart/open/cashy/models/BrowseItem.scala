@@ -16,7 +16,7 @@ case class BrowseItemDetail(
     size: String,
     contentType: String,
     s3Url: String,
-    cloudfrontUrl: String,
+    url: String,
     creator: String,
     cacheControl: String,
     eTag: String,
@@ -31,7 +31,7 @@ object BrowseItemDetail {
       (JsPath \ "size").write[String] and
       (JsPath \ "contentType").write[String] and
       (JsPath \ "s3Url").write[String] and
-      (JsPath \ "cloudfrontUrl").write[String] and
+      (JsPath \ "url").write[String] and
       (JsPath \ "creator").write[String] and
       (JsPath \ "cacheControl").write[String] and
       (JsPath \ "eTag").write[String] and

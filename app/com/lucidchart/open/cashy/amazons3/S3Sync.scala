@@ -95,7 +95,7 @@ class S3Sync @Inject() (
         syncUserId,
         bucket,
         s3Asset.key,
-        buckets.cloudfrontUrl(bucket) + s3Asset.key,
+        buckets.publicUrl(bucket) + s3Asset.key,
         hasGzip,
       )
     }
