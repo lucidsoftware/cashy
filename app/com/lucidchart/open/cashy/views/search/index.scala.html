@@ -64,14 +64,14 @@
   <script>
     var hiddenCount = @results.count(_.hidden);
 
-    var showHidden = $.cookie('showHiddenAssets') == "true";
+    var showHidden = localStorage.getItem('showHiddenAssets') == "true";
 
     var showHiddenItems = function() {
       $(".asset-row.hidden").addClass("show-opaque");
       showHidden = true;
       $("#hideHidden").toggle(showHidden);
       $("#showHidden").toggle(!showHidden);
-      $.cookie('showHiddenAssets', true);
+      localStorage.setItem('showHiddenAssets', 'true');
     }
 
     var hideHiddenItems = function() {
@@ -79,7 +79,7 @@
       showHidden = false;
       $("#hideHidden").toggle(showHidden);
       $("#showHidden").toggle(!showHidden);
-      $.cookie('showHiddenAssets', false);
+      localStorage.setItem('showHiddenAssets', 'false');
     }
 
     if (showHidden) {
