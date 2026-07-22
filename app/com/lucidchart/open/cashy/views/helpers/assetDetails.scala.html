@@ -42,9 +42,6 @@
           <div class="item-detail-label">Gzipped</div><div class="item-detail-value" id="@bucketName-itemGzipped"></div>
         </div>
         <div>
-          <div class="item-detail-label">S3 Url</div><div class="item-detail-value"><a class="show-s3-url" href="" target="_blank">Click to show</a><a id="@bucketName-itemS3Url" href="" target="_blank"></a></div>
-        </div>
-        <div>
           <div class="item-detail-label">Upload Again</div><div class="item-detail-value"><a id="@bucketName-itemUploadAnotherVersion" href="" target="_blank">Click to upload another version</a></div>
         </div><br />
       </div>
@@ -63,7 +60,6 @@
       success: function(data) {
         $('#@bucketName-itemName').text(data.name);
         $('#@bucketName-itemKey').text(data.key);
-        $('#@bucketName-itemS3Url').text(data.s3Url).attr('href', data.s3Url);
         $('#@bucketName-itemCloudrontUrl').text(data.cloudfrontUrl).attr('href', data.cloudfrontUrl);
         $('#@bucketName-itemCreatedAt').text(data.creationDate);
         $('#@bucketName-itemCreatedBy').text(data.creator);
@@ -79,21 +75,12 @@
         $('#@bucketName-itemUploadAnotherVersion').attr('href', uploadUrl);
 
         $('#@bucketName-itemDetails').modal('show');
-        $('#@bucketName-itemS3Url').hide();
-        $('a.show-s3-url').show();
       },
       complete: function(xhr) {
         console.log(xhr)
       }
     })
 
-  });
-
-  $('a.show-s3-url').click(function(e){
-    e.preventDefault();
-
-    $('#@bucketName-itemS3Url').show();
-    $('a.show-s3-url').hide();
   });
 </script> 
 

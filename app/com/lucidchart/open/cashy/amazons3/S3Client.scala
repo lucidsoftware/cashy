@@ -16,6 +16,7 @@ import software.amazon.awssdk.profiles.ProfileFile
 import software.amazon.awssdk.services.s3.model._
 import software.amazon.awssdk.services.s3.{S3Client => AmazonS3Client}
 import software.amazon.awssdk.core.sync.RequestBody
+import com.lucidchart.open.cashy.config.Buckets
 
 case class ListObjectsResponse(
     folders: List[String],
@@ -23,25 +24,53 @@ case class ListObjectsResponse(
     nextMarker: Option[String]
 )
 
-class S3Client @Inject() (configuration: Configuration) {
+case class AssetMetadata(
+    eTag: Option[String],
+    contentLength: Option[Long],
+    cacheControl: Option[String],
+    contentType: Option[String]
+)
+
+class S3Client @Inject() (
+  buckets: Buckets,
+  configuration: Configuration
+) {
   val logger = Logger(this.getClass)
 
   protected val uploadTimeout = configuration.get[Int]("amazon.s3.upload.timeout")
   protected val uploadCacheTime = configuration.get[Int]("amazon.s3.upload.cachetime")
   protected val listingMaxKeys = configuration.get[Int]("amazon.s3.listing.maxKeys")
   protected val tempUploadPrefix = configuration.get[String]("amazon.s3.tempUploadPrefix")
-  protected val s3AccessUrl = configuration.get[String]("amazon.s3.fullAccessUrl")
   private val credentialsFile = configuration.getOptional[String]("aws.credentialsFile")
 
   protected val awsCredentialsProvider = getAwsCredentialsProvider()
   protected val s3Client = AmazonS3Client.builder().credentialsProvider(awsCredentialsProvider).build()
 
   def existsInS3(bucketName: String, objectName: String): Boolean = {
+    headObject(bucketName, objectName).isDefined
+  }
+
+  private def headObject(bucketName: String, key: String): Option[HeadObjectResponse] = {
     try {
-      s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(objectName).build())
-      true
+      Some(s3Client.headObject(
+        HeadObjectRequest.builder()
+          .bucket(buckets.bucketNameForSDK(bucketName))
+          .key(key)
+          .build()
+      ))
     } catch {
-      case e: NoSuchKeyException => false
+      case _: NoSuchKeyException => None
+    }
+  }
+
+  def getAssetMetadata(bucketName: String, key: String): Option[AssetMetadata] = {
+    headObject(bucketName, key).map { h =>
+      AssetMetadata(
+        Option(h.eTag()).map(_.replaceAll("^\"|\"$", "")),
+        Option(h.contentLength()).map(_.longValue),
+        Option(h.cacheControl()),
+        Option(h.contentType())
+      )
     }
   }
 
@@ -50,7 +79,7 @@ class S3Client @Inject() (configuration: Configuration) {
       s3Client.putObject(
         PutObjectRequest
           .builder()
-          .bucket(bucketName)
+          .bucket(buckets.bucketNameForSDK(bucketName))
           .key(key)
           .build(),
         RequestBody.fromBytes(Array(0))
@@ -74,7 +103,7 @@ class S3Client @Inject() (configuration: Configuration) {
 
     val requestBuilder = PutObjectRequest
       .builder()
-      .bucket(bucketName)
+      .bucket(buckets.bucketNameForSDK(bucketName))
       .key(objectName)
       .contentLength(bytes.length)
       .cacheControl(s"public, no-transform, max-age=${uploadCacheTime}")
@@ -94,22 +123,10 @@ class S3Client @Inject() (configuration: Configuration) {
     }
   }
 
-  // Uploads a file to the temp directory in S3 and returns the full amazon s3 url for it
-  def uploadTempFile(
-      bucketName: String,
-      assetName: String,
-      bytes: Array[Byte],
-      contentType: Option[String]
-  ): String = {
-    val tempName = tempUploadPrefix + "/" + assetName
-    uploadToS3(bucketName, tempName, bytes, contentType, false)
-    s3AccessUrl + bucketName + "/" + tempName
-  }
-
   def removeFromS3(bucketName: String, assetName: String, gzipped: Boolean = false): Unit = {
     val objectName = if (gzipped) assetName + ".gz" else assetName
     try {
-      s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(assetName).build())
+      s3Client.deleteObject(DeleteObjectRequest.builder().bucket(buckets.bucketNameForSDK(bucketName)).key(assetName).build())
     } catch {
       case e: Exception => {
         logger.error(s"Error when deleting asset $bucketName/$objectName")
@@ -121,7 +138,7 @@ class S3Client @Inject() (configuration: Configuration) {
   def listObjects(bucketName: String, prefix: String, marker: Option[String] = None): ListObjectsResponse = {
     val requestBuilder = ListObjectsV2Request
       .builder()
-      .bucket(bucketName)
+      .bucket(buckets.bucketNameForSDK(bucketName))
       .prefix(prefix)
       .delimiter("/")
       .maxKeys(listingMaxKeys)
@@ -149,7 +166,7 @@ class S3Client @Inject() (configuration: Configuration) {
   }
 
   def listAllObjects(bucketName: String): Iterator[S3SyncAsset] = {
-    val listRequest = ListObjectsV2Request.builder().bucket(bucketName).build()
+    val listRequest = ListObjectsV2Request.builder().bucket(buckets.bucketNameForSDK(bucketName)).build()
 
     try {
       val objectListings = s3Client.listObjectsV2Paginator(listRequest)
