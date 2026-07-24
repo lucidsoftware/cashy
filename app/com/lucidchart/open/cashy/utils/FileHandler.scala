@@ -1,7 +1,7 @@
 package com.lucidchart.open.cashy.utils
 
-import akka.stream.scaladsl.Sink
-import akka.util.ByteString
+import org.apache.pekko.stream.scaladsl.Sink
+import org.apache.pekko.util.ByteString
 import play.core.parsers.Multipart.{FilePartHandler, FileInfo}
 import play.api.mvc.MultipartFormData.FilePart
 import java.io.ByteArrayOutputStream

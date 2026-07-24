@@ -16,25 +16,26 @@ import play.api.data._
 import play.api.data.Forms._
 import play.api.i18n.I18nSupport
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.ExecutionContext
 
 case class AssetNotFoundException(message: String) extends Exception(message)
 
 class UploadController @Inject() (
-  authAction: AuthAction,
-  s3Client: S3Client,
-  configuration: Configuration,
-  jsUploader: JsUploader,
-  cssUploader: CssUploader,
-  defaultUploader: DefaultUploader,
-  components: ControllerComponents,
+    authAction: AuthAction,
+    s3Client: S3Client,
+    configuration: Configuration,
+    jsUploader: JsUploader,
+    cssUploader: CssUploader,
+    defaultUploader: DefaultUploader,
+    components: ControllerComponents
 )(implicit
-  private val uploadFeatures: UploadFeatures,
-  private val buckets: Buckets,
-  private val extensions: ExtensionsConfig,
+    private val uploadFeatures: UploadFeatures,
+    private val buckets: Buckets,
+    private val extensions: ExtensionsConfig
 ) extends AbstractController(components)
     with I18nSupport {
 
-  implicit val executionContext = defaultExecutionContext
+  implicit val executionContext: ExecutionContext = defaultExecutionContext
 
   val logger = Logger(this.getClass)
 
@@ -50,13 +51,13 @@ class UploadController @Inject() (
         .verifying("Must not contain ./", x => !x.contains("./"))
         .verifying(
           "Must be organized in at least " + minNestedDirectories + " directories",
-          x => x.split("/").length >= minNestedDirectories + 1,
+          x => x.split("/").length >= minNestedDirectories + 1
         )
         .verifying(
           "Must end in a valid extension (" + extensions(ExtensionType.valid)
             .map("." + _)
             .mkString(", ") + ")",
-          x => extensions.getExtensionType(x) != ExtensionType.invalid,
+          x => extensions.getExtensionType(x) != ExtensionType.invalid
         ),
       "resizeImage" -> boolean,
       "resizedImage" -> optional(text),
@@ -64,7 +65,7 @@ class UploadController @Inject() (
       "assetRetinaName" -> optional(text),
       "imageWidth" -> optional(number),
       "imageHeight" -> optional(number),
-      "assetURL" -> optional(text),
+      "assetURL" -> optional(text)
     )(UploadFormSubmission.apply _)(UploadFormSubmission.unapply _)
       .verifying(
         "Name not available",
@@ -79,10 +80,10 @@ class UploadController @Inject() (
                   assetRetinaName,
                   imageWidth,
                   imageHeight,
-                  assetURL,
+                  assetURL
                 ) =>
               !s3Client.existsInS3(bucket, assetName)
-          },
+          }
       )
       .verifying(
         "Must specify non-negative dimensions",
@@ -97,10 +98,10 @@ class UploadController @Inject() (
                   assetRetinaName,
                   imageWidth,
                   imageHeight,
-                  assetURL,
+                  assetURL
                 ) =>
               !resizeImage || (imageWidth.isDefined && imageWidth.get > 0 && imageHeight.isDefined && imageHeight.get > 0)
-          },
+          }
       )
       .verifying(
         "Must preview resized image",
@@ -115,10 +116,10 @@ class UploadController @Inject() (
                   assetRetinaName,
                   imageWidth,
                   imageHeight,
-                  assetURL,
+                  assetURL
                 ) =>
               !resizeImage || (resizedImage.isDefined)
-          },
+          }
       )
       .verifying(
         "Must provide retina image name",
@@ -133,22 +134,22 @@ class UploadController @Inject() (
                   assetRetinaName,
                   imageWidth,
                   imageHeight,
-                  assetURL,
+                  assetURL
                 ) =>
               !resizeImage || (!uploadRetina || assetRetinaName.isDefined)
-          },
-      ),
+          }
+      )
   )
 
   /**
-   * Upload form, authentication required
-   */
+    * Upload form, authentication required
+    */
   def index(bucket: Option[String] = None, path: Option[String] = None, assetURL: Option[String] = None) =
     authAction.authenticatedUser { implicit user =>
       Action { implicit request =>
         val filledForm =
           uploadForm.fill(
-            UploadFormSubmission(bucket.orNull, path.orNull, assetURL = assetURL),
+            UploadFormSubmission(bucket.orNull, path.orNull, assetURL = assetURL)
           )
 
         Ok(views.html.upload.index(filledForm))
@@ -195,15 +196,15 @@ class UploadController @Inject() (
                   Ok(views.html.upload.index(uploadForm.fill(data), Some(e.getMessage)))
                 }
               }
-            },
+            }
           )
       }
     }
 
   /**
-   * This method is actually an endpoint that will take take the form and check it. Any errors will be sent back to the
-   * user, or, if the form was valid, return a success message.
-   */
+    * This method is actually an endpoint that will take take the form and check it. Any errors will be sent back to the
+    * user, or, if the form was valid, return a success message.
+    */
   def validate =
     authAction.authenticatedUser { implicit user =>
       Action(parse.multipartFormData(FileHandler.handleFilePartAsByteArray)) { implicit request =>
@@ -218,7 +219,7 @@ class UploadController @Inject() (
                 case Success(_) => List.empty
                 case Failure(e) => List(new FormError("", e.getMessage))
               }
-            },
+            }
           )
           .map { error =>
             (if (error.key != "") error.key else "all") -> error.message
@@ -234,11 +235,11 @@ class UploadController @Inject() (
     }
 
   private def eitherAssetSource(
-    fileOption: Option[FilePart[Array[Byte]]],
-    urlOption: Option[String],
+      fileOption: Option[FilePart[Array[Byte]]],
+      urlOption: Option[String]
   ): Either[FilePart[Array[Byte]], String] = {
     fileOption.map(Left(_)) orElse urlOption.map(Right(_)) getOrElse (throw AssetNotFoundException(
-      s"Could not parse file and/or could not download from $urlOption",
+      s"Could not parse file and/or could not download from $urlOption"
     ))
   }
 
