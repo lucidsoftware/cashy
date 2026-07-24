@@ -33,7 +33,7 @@ Debian/linuxPackageMappings ~= {
   }
 }
 
-scalaVersion := "2.13.6"
+scalaVersion := "2.13.18"
 scalacOptions ++= Seq("-feature", "-deprecation", "-Xfatal-warnings")
 
 resolvers ++= List(

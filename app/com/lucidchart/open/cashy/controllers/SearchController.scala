@@ -23,7 +23,7 @@ class SearchController @Inject() (
 ) extends AbstractController(components)
     with I18nSupport {
   import SearchController._
-  implicit private[this] val _buckets = buckets
+  implicit private[this] val _buckets: Buckets = buckets
 
   def search =
     authAction.authenticatedUser { implicit user =>

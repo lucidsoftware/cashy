@@ -6,7 +6,7 @@ import com.lucidchart.open.cashy.models.{AssetModel, AuditModel}
 import com.lucidchart.open.cashy.config.Buckets
 import com.lucidchart.open.cashy.utils.{Mailer, MailerAddress, MailerMessage}
 
-import akka.actor.{Actor, ActorSystem, Props}
+import org.apache.pekko.actor.{Actor, ActorSystem, Props}
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
@@ -14,22 +14,22 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 case class S3SyncAsset(
-  key: String,
-  date: Instant,
+    key: String,
+    date: Instant
 )
 
 @Singleton
 class S3Sync @Inject() (
-  assetModel: AssetModel,
-  auditModel: AuditModel,
-  mailer: Mailer,
-  s3Client: S3Client,
-  buckets: Buckets,
-  configuration: Configuration,
+    assetModel: AssetModel,
+    auditModel: AuditModel,
+    mailer: Mailer,
+    s3Client: S3Client,
+    buckets: Buckets,
+    configuration: Configuration
 )(implicit ec: ExecutionContext) {
 
-  val akkaCashySystem: ActorSystem =
-    ActorSystem("cashysystem", configuration.underlying.getConfig("akka.cashysystem"))
+  val pekkoCashySystem: ActorSystem =
+    ActorSystem("cashysystem", configuration.underlying.getConfig("pekko.cashysystem"))
   private val syncFrequency = configuration.get[Int]("amazon.s3.syncFrequency")
   private val syncUserId = 1 // hard-coded becauase the syncuser is part of evolutions
   private val alertEmail = configuration.get[String]("mailer.alertEmail")
@@ -37,20 +37,20 @@ class S3Sync @Inject() (
   private val tempUploadPrefix = configuration.get[String]("amazon.s3.tempUploadPrefix")
 
   private[this] def schedule(): Unit = {
-    val assetSync = akkaCashySystem.actorOf(Props(new AssetSynchronizer(this)))
-    akkaCashySystem.scheduler.scheduleWithFixedDelay(
+    val assetSync = pekkoCashySystem.actorOf(Props(new AssetSynchronizer(this)))
+    pekkoCashySystem.scheduler.scheduleWithFixedDelay(
       0.seconds,
       syncFrequency.seconds,
       assetSync,
-      "sync",
+      "sync"
     )(ec)
   }
 
   schedule() // schedule once it is created
 
   /**
-   * Checks the data in amazon s3 against our asset database, updating the asset db as necessary
-   */
+    * Checks the data in amazon s3 against our asset database, updating the asset db as necessary
+    */
   private def sync(): Unit = {
 
     buckets.names.map { bucket =>
@@ -59,7 +59,7 @@ class S3Sync @Inject() (
       val nonTempAssets =
         deleteTempAssets(
           bucket,
-          allS3Assets,
+          allS3Assets
         ) // Do this first or else they will get uploaded and then deleted every sync
       checkChangedAssets(bucket, nonTempAssets)
       checkS3GzAssets(bucket, nonTempAssets)
@@ -96,7 +96,7 @@ class S3Sync @Inject() (
         bucket,
         s3Asset.key,
         buckets.cloudfrontUrl(bucket) + s3Asset.key,
-        hasGzip,
+        hasGzip
       )
     }
   }
@@ -126,7 +126,7 @@ class S3Sync @Inject() (
         Nil,
         Nil,
         "[Cashy] Amazon S3 Gzip Inconsistency",
-        emailText,
+        emailText
       )
 
       mailer.send(message)
@@ -135,8 +135,8 @@ class S3Sync @Inject() (
   }
 
   /**
-   * A simple Actor that synchronizes cashy's database with S3
-   */
+    * A simple Actor that synchronizes cashy's database with S3
+    */
   private class AssetSynchronizer(synchronizer: S3Sync) extends Actor {
     def receive = {
       case "sync" => {
