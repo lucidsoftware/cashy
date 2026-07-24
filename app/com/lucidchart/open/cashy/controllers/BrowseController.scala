@@ -20,9 +20,6 @@ import play.api.mvc.{Request, Action, ControllerComponents, AbstractController}
 import play.api.libs.json.Json
 import play.api.i18n.I18nSupport
 import play.api.Configuration
-import org.apache.http.client.methods.HttpHead
-import org.apache.http.impl.client.HttpClientBuilder
-import scala.io.Source
 
 class BrowseController @Inject() (
     authAction: AuthAction,
@@ -37,8 +34,6 @@ class BrowseController @Inject() (
     with I18nSupport {
 
   val logger = Logger(this.getClass)
-
-  val fullS3AccessUrl = configuration.get[String]("amazon.s3.fullAccessUrl")
 
   /**
     * Browse page, authentication required
@@ -118,11 +113,11 @@ class BrowseController @Inject() (
           case None => "???"
         }
         val created = cashyAsset.map(_.created).getOrElse("???").toString
-        val headers = getAssetHeaders(bucket, key)
-        val eTag = Option(headers.get("ETag").replaceAll("^\"|\"$", "")).getOrElse("???")
-        val contentLength = Option(headers.get("Content-Length")).getOrElse("???")
-        val cacheControl = Option(headers.get("Cache-Control")).getOrElse("???")
-        val contentType = Option(headers.get("Content-Type")).getOrElse("???")
+        val metadata = s3Client.getAssetMetadata(bucket, key)
+        val eTag = metadata.flatMap(_.eTag).getOrElse("???")
+        val contentLength = metadata.flatMap(_.contentLength).map(_.toString).getOrElse("???")
+        val cacheControl = metadata.flatMap(_.cacheControl).getOrElse("???")
+        val contentType = metadata.flatMap(_.contentType).getOrElse("???")
         val gzipped = s3Client.existsInS3(bucket, key + ".gz")
 
         val item = BrowseItemDetail(
@@ -131,7 +126,6 @@ class BrowseController @Inject() (
           created,
           contentLength,
           contentType,
-          fullS3AccessUrl + bucket + "/" + key,
           buckets.cloudfrontUrl(bucket) + key,
           email,
           cacheControl,
@@ -252,24 +246,4 @@ class BrowseController @Inject() (
       }
     }
   }
-
-  /**
-    * Make a HEAD request to a publicly exposed asset to get information
-    */
-  private def getAssetHeaders(bucket: String, key: String): Option[Map[String, String]] = {
-    val s3Url = fullS3AccessUrl + bucket + "/" + key
-
-    val httpClient = HttpClientBuilder.create().build()
-    val response = httpClient.execute(new HttpHead(s3Url))
-
-    // Get the headers
-    val headerMapOption = if (response.getStatusLine().getStatusCode() != 200) {
-      None
-    } else {
-      val headerMap = response.getAllHeaders().map(header => (header.getName() -> header.getValue())).toMap
-      Some(headerMap)
-    }
-    headerMapOption
-  }
-
 }
