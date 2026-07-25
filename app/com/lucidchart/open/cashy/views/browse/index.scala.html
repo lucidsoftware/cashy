@@ -22,17 +22,17 @@
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
   <div class="row">
     <h2>@bucketName</h2>
-    <ol class="breadcrumb">
-      <li><a href="@cashyRoutes.BrowseController.index(bucketName, "")">@bucketName</a></li>
+    <ol class="breadcrumb rounded">
+      <li class="breadcrumb-item"><a href="@cashyRoutes.BrowseController.index(bucketName, "")">@bucketName</a></li>
       @for((crumb, path) <- crumbs) {
-        <li><a href="@cashyRoutes.BrowseController.index(bucketName, path)">@crumb</a></li>
+        <li class="breadcrumb-item"><a href="@cashyRoutes.BrowseController.index(bucketName, path)">@crumb</a></li>
       }
     </ol>
     <div class="container-fluid">
-      <div class="row-fluid">
-        <a href="@cashyRoutes.UploadController.index(Some(bucketName), Some(path))"><button class="btn btn-primary">Upload Here</button></a>
+      <div class="container-fluid">
+        <a href="@cashyRoutes.UploadController.index(Some(bucketName), Some(path))" class="btn btn-primary">Upload Here</a>
 
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#newFolderModal">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newFolderModal">
           Create Folder
         </button>
 
@@ -41,8 +41,8 @@
           <div class="modal-dialog">
             <div class="modal-content">
               <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalLabel">Create folder in @path</h4>
+                <h5 class="modal-title" id="myModalLabel">Create folder in @path</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
                 <div>Please only create a folder if you intend to upload to it</div><br />
@@ -50,7 +50,7 @@
                 <div id="newFolderError" class="error"></div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" id="createFolderSubmit" class="btn btn-primary">Create Folder</button>
               </div>
             </div>
@@ -58,7 +58,7 @@
         </div>
 
       </div>
-      <div class="row-fluid asset-list">
+      <div class="row asset-list">
         @for(item <- items) {
           @if(item.hidden) {
             <div class="asset-row hidden">
@@ -68,17 +68,19 @@
             <a class="hide-item" data-key="@item.key">hide</a>
           }
             @item.itemType match {
-              case BrowseItemType.folder => {<span class="glyphicon glyphicon-folder-open"></span><a href="@item.link">@item.name</a>}
-              case BrowseItemType.asset => {<span class="glyphicon glyphicon-file"></span><a class="asset" href="#" data-key="@item.key">@item.name</a>}
+              case BrowseItemType.folder => {<span aria-hidden="true">📁</span><a href="@item.link">@item.name</a>}
+              case BrowseItemType.asset => {<span aria-hidden="true">📄</span><a class="asset" href="#" data-key="@item.key">@item.name</a>}
             }
           </div>
         }
+        <div class="page-nav my-3">
         @if(marker.isDefined) {
-          <button class="btn pull-left" id="browsePrevBtn">Prev</button></a>
+          <button class="btn btn-secondary float-start" id="browsePrevBtn">Prev</button></a>
         }
         @if(nextMarker.isDefined) {
-          <a href="@cashyRoutes.BrowseController.index(bucketName, path, nextMarker)"><button class="btn pull-right">Next</button></a>
+          <a href="@cashyRoutes.BrowseController.index(bucketName, path, nextMarker)"><button class="btn btn-secondary float-end">Next</button></a>
         }
+        </div>
 
         @{ assetDetails(bucketName, "asset") }
 
@@ -88,13 +90,13 @@
         @defining(items.count(_.hidden)) { hiddenCount =>
           @if(hiddenCount > 0) {
             <div>
-              <a id="showHidden">Show <span class="hidden-count"></span> hidden item(s)</a>
-              <a id="hideHidden">Hide <span class="hidden-count"></span> item(s)</a>
+              <a id="showHidden" class="link-underline link-underline-opacity-10">Show <span class="hidden-count"></span> hidden item(s)</a>
+              <a id="hideHidden" class="link-underline link-underline-opacity-10">Hide <span class="hidden-count"></span> item(s)</a>
             </div>
           }
           <div>
-            <a id="manageHidden">Manage hidden items</a>
-            <a id="stopManageHidden">Stop managing hidden items</a>
+            <a id="manageHidden" class="link-underline link-underline-opacity-10">Manage hidden items</a>
+            <a id="stopManageHidden" class="link-underline link-underline-opacity-10">Stop managing hidden items</a>
           </div>
         }
       </div>
@@ -240,6 +242,9 @@
     }
     .asset-row a {
       font-size: 16px;
+    }
+    .asset-row.hidden {
+      display: none;
     }
     .asset-row.hidden.show-opaque {
       display: block !important;

@@ -21,21 +21,21 @@
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
   <div class="row">
     <h2>Upload Assets</h2>
-    <div class="well col-xs-6">
+    <div class="col-12 col-md-6 bg-body-tertiary rounded p-3">
       @form(action=cashyRoutes.UploadController.uploadToS3, Symbol("id") -> "uploadForm", (Symbol("enctype") -> "multipart/form-data")) {
         @CSRF.formField
         <fieldset>
           @helper.select(uploadForm("bucket"), buckets.names.map(b => b -> b).toSeq, Symbol("id") -> "bucket", Symbol("_label") -> "Bucket", Symbol("_showConstraints") -> false)
           @defining(request.queryString.get("assetURL")) { url =>
             <ul class="nav nav-tabs" role="tablist">
-              <li class="@if(!url.isDefined) {active}"><a href="#assetFromFile" role="tab" data-toggle="tab">From File</a></li>
-              <li class="@if(url.isDefined) {active}"><a href="#assetFromURL" role="tab" data-toggle="tab">From URL</a></li>
+              <li class="nav-item" role="presentation"><a class="nav-link @if(!url.isDefined) {active}" href="#assetFromFile" role="tab" data-bs-toggle="tab">From File</a></li>
+              <li class="nav-item" role="presentation"><a class="nav-link @if(url.isDefined) {active}" href="#assetFromURL" role="tab" data-bs-toggle="tab">From URL</a></li>
             </ul>
             <div class="tab-content">
-              <div class="tab-pane @if(!url.isDefined) {active}" id="assetFromFile">
+              <div class="tab-pane fade @if(!url.isDefined) {show active}" id="assetFromFile">
                 @helper.inputFile(uploadForm("assetFile"), Symbol("_label") -> "Asset File", Symbol("size") -> 10, Symbol("id") -> "fileInput")
               </div>
-              <div class="tab-pane @if(url.isDefined) {active}" id="assetFromURL">
+              <div class="tab-pane fade @if(url.isDefined) {show active}" id="assetFromURL">
                 @helper.input(uploadForm("assetURL"), Symbol("_label") -> null, Symbol("id") -> "assetURL") { (id, name, value, args) =>
                   <input type="url" name="@name" id="@id" @toHtmlArgs(args) class="form-control" value="@value" placeholder="Enter a URL" />
                 }
@@ -45,9 +45,9 @@
           <dl>
             <dt>Asset Prep</dt>
             <dd>
-                <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#imageInstructionModal">image</button>
-                <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#jsInstructionModal">javascript</button>
-                <button class="btn btn-info btn-sm" type="button" data-toggle="modal" data-target="#cssInstructionModal">css</button>
+                <button class="btn btn-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#imageInstructionModal">image</button>
+                <button class="btn btn-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#jsInstructionModal">javascript</button>
+                <button class="btn btn-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#cssInstructionModal">css</button>
             </dd>
           </dl>
           @if(uploadFeatures.compressJsEnabled) {
@@ -94,18 +94,18 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="myModalLabel">Uploading an Image</h4>
+          <h5 class="modal-title" id="myModalLabel">Uploading an Image</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <ol>
             <li>Resize it</li>
-            <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="dog_300x300.png">Name it</span></li>
+            <li><span style="border-bottom:1px dotted #999;" data-bs-toggle="tooltip" data-bs-placement="right" title="dog_300x300.png">Name it</span></li>
             <li>Upload it</li>
           </ol>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
@@ -116,19 +116,19 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="myModalLabel">Uploading Javascript</h4>
+          <h5 class="modal-title" id="myModalLabel">Uploading Javascript</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <ol>
             <li><a href="http://closure-compiler.appspot.com/" target="_blank">Optimize it</a></li>
-            <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Add a version number or date to the file">Rename it</span></li>
+            <li><span style="border-bottom:1px dotted #999;" data-bs-toggle="tooltip" data-bs-placement="right" title="Add a version number or date to the file">Rename it</span></li>
             <li>Upload it</li>
-            <li>Consider <span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Concatenate multiple javascript sources together to save HTTP requests">Bundling</span> it</li>
+            <li>Consider <span style="border-bottom:1px dotted #999;" data-bs-toggle="tooltip" data-bs-placement="right" title="Concatenate multiple javascript sources together to save HTTP requests">Bundling</span> it</li>
           </ol>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
@@ -139,18 +139,18 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="myModalLabel">Uploading CSS</h4>
+          <h5 class="modal-title" id="myModalLabel">Uploading CSS</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <ol>
-            <li><span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Add a version number or date to the file">Rename it</span></li>
+            <li><span style="border-bottom:1px dotted #999;" data-bs-toggle="tooltip" data-bs-placement="right" title="Add a version number or date to the file">Rename it</span></li>
             <li>Upload it</li>
-            <li>Consider <span style="border-bottom:1px dotted #999;" data-toggle="tooltip" data-placement="right" title="Concatenate multiple CSS sources together to save HTTP requests">Bundling</span> it</li>
+            <li>Consider <span style="border-bottom:1px dotted #999;" data-bs-toggle="tooltip" data-bs-placement="right" title="Concatenate multiple CSS sources together to save HTTP requests">Bundling</span> it</li>
           </ol>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
@@ -243,7 +243,7 @@
   }  // preProcessAsset
 
   $('#uploadButton').click(function(event) {
-    $(this).button('loading');
+    $(this).prop('disabled', true).text('Uploading...');
     $('dd.error').remove();
     $('dl.error').removeClass('error');
 
@@ -283,7 +283,7 @@
               dl.append('<dd class="error">' + error[i] + '</dd>');
             }
           }
-          $('#uploadButton').button('reset');
+          $('#uploadButton').prop('disabled', false).text('Upload');
         }
       }
     });
@@ -291,7 +291,9 @@
   });
 
   $(function () {
-    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-bs-toggle="tooltip"]').each(function() {
+      new bootstrap.Tooltip(this);
+    });
     $('.upload-info').hide();
     $('#retinaNameContainer').hide();
     $('#previewImageButton').hide();
@@ -302,11 +304,11 @@
       $('#assetURL').change();
     }
 
-    $(document).on('shown.bs.tab', 'a[href="#assetFromFile"]', function() {
+    document.querySelector('a[href="#assetFromFile"]').addEventListener('shown.bs.tab', function() {
       $('#fileInput').change();
     });
 
-    $(document).on('shown.bs.tab', 'a[href="#assetFromURL"]', function() {
+    document.querySelector('a[href="#assetFromURL"]').addEventListener('shown.bs.tab', function() {
       $('#assetURL').change();
     });
 
