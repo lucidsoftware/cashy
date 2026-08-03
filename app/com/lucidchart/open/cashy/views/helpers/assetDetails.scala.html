@@ -10,8 +10,8 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title" id="@bucketName-itemName"></h4>
+        <h5 class="modal-title" id="@bucketName-itemName"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div>
@@ -74,7 +74,7 @@
 
         $('#@bucketName-itemUploadAnotherVersion').attr('href', uploadUrl);
 
-        $('#@bucketName-itemDetails').modal('show');
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('@bucketName-itemDetails')).show();
       },
       complete: function(xhr) {
         console.log(xhr)
@@ -82,13 +82,14 @@
     })
 
   });
-</script> 
+</script>
 
 <style>
   #@bucketName-itemName {
     margin-top: 0;
   }
   .item-detail-label {
+   font-weight: 700;
     width: 20%;
     float: left;
   }

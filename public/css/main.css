@@ -1,5 +1,20 @@
+/* Customize bootstrap */
+
+:root body {
+  --bs-body-font-family: sans-serif;
+}
+
 body > div.container {
 	margin-top: 50px;
+}
+
+h3 {
+  margin-top: 0.5lh;
+}
+
+ol.breadcrumb {
+  background-color: var(--bs-secondary-bg);
+  padding: 8px 15px;
 }
 
 dd.error, div.error {
@@ -16,6 +31,13 @@ dd.error, div.error {
 
 .pagination-container {
 	text-align: center;
+}
+
+/* The default is too narrow
+ * Should we use media queries for this?
+ */
+.modal-dialog {
+  max-width: 700px;
 }
 
 img.cashy-logo {

@@ -17,7 +17,7 @@
 @com.lucidchart.open.cashy.views.html.layouts.main(userOption=Some(user)) {
   <div class="row">
     <h2>Upload Complete</h2>
-    <div class="well">
+    <div class="bg-body-secondary rounded p-3">
       @if(uploadResult.uploadedAssets.size > 0) {
         <h3>Assets that were uploaded</h3>
         @for((assetLabel, asset) <- uploadResult.uploadedAssets) {
@@ -51,7 +51,7 @@
 .uploaded-asset a {
   display: block;
 }
-.well > a {
+.bg-body-tertiary > a {
   margin-top: 15px;
   display: inline-block;
 }
