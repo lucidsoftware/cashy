@@ -68,7 +68,7 @@ class BrowseController @Inject() (
               BrowseItemType.asset,
               a,
               getItemName(a, BrowseItemType.asset),
-              buckets.cloudfrontUrl(bucket) + a,
+              buckets.publicUrl(bucket) + a,
               assets.get(a).map(_.hidden).getOrElse(false)
             )
           )
@@ -126,7 +126,7 @@ class BrowseController @Inject() (
           created,
           contentLength,
           contentType,
-          buckets.cloudfrontUrl(bucket) + key,
+          buckets.publicUrl(bucket) + key,
           email,
           cacheControl,
           eTag,

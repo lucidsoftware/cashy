@@ -32,8 +32,8 @@ case class AssetMetadata(
 )
 
 class S3Client @Inject() (
-  buckets: Buckets,
-  configuration: Configuration
+    buckets: Buckets,
+    configuration: Configuration
 ) {
   val logger = Logger(this.getClass)
 
@@ -52,12 +52,15 @@ class S3Client @Inject() (
 
   private def headObject(bucketName: String, key: String): Option[HeadObjectResponse] = {
     try {
-      Some(s3Client.headObject(
-        HeadObjectRequest.builder()
-          .bucket(buckets.bucketNameForSDK(bucketName))
-          .key(key)
-          .build()
-      ))
+      Some(
+        s3Client.headObject(
+          HeadObjectRequest
+            .builder()
+            .bucket(buckets.bucketNameForSDK(bucketName))
+            .key(key)
+            .build()
+        )
+      )
     } catch {
       case _: NoSuchKeyException => None
     }
@@ -126,7 +129,9 @@ class S3Client @Inject() (
   def removeFromS3(bucketName: String, assetName: String, gzipped: Boolean = false): Unit = {
     val objectName = if (gzipped) assetName + ".gz" else assetName
     try {
-      s3Client.deleteObject(DeleteObjectRequest.builder().bucket(buckets.bucketNameForSDK(bucketName)).key(assetName).build())
+      s3Client.deleteObject(
+        DeleteObjectRequest.builder().bucket(buckets.bucketNameForSDK(bucketName)).key(assetName).build()
+      )
     } catch {
       case e: Exception => {
         logger.error(s"Error when deleting asset $bucketName/$objectName")
